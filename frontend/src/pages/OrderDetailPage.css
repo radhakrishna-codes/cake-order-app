@@ -1,0 +1,39 @@
+.order-detail-card {
+  background: linear-gradient(180deg, var(--rr-card) 0%, var(--rr-cream) 100%);
+  border: 2px solid var(--rr-gold-dark);
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 24px var(--rr-shadow);
+}
+
+.detail-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem 1rem;
+}
+
+.detail-grid dt {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--rr-gold-deep);
+}
+
+.detail-grid dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+  color: var(--rr-black);
+}
+
+.detail-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 480px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

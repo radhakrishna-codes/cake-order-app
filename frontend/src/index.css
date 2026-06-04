@@ -1,0 +1,42 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Raja Rani logo palette */
+  --rr-gold: #e8c547;
+  --rr-gold-mid: #d4af37;
+  --rr-gold-dark: #b8922a;
+  --rr-gold-deep: #9a7b1f;
+  --rr-gold-light: #f5e6a8;
+  --rr-gold-pale: #fff8dc;
+  --rr-cream: #fffdf5;
+  --rr-black: #1a1a1a;
+  --rr-black-soft: #2d2818;
+  --rr-text: #1a1a1a;
+  --rr-text-muted: #5c4d28;
+  --rr-card: #ffffff;
+  --rr-shadow: rgba(26, 26, 26, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--rr-text);
+  background-color: var(--rr-gold-light);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}

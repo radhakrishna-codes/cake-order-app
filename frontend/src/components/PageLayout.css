@@ -1,0 +1,95 @@
+.page-layout {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--rr-black) 0%, var(--rr-black-soft) 100%);
+  border: 2px solid var(--rr-gold);
+  box-shadow: 0 8px 28px var(--rr-shadow);
+}
+
+.page-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.back-link {
+  align-self: flex-start;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--rr-gold);
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--rr-gold-light);
+  text-decoration: underline;
+}
+
+.page-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.page-logo {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(232, 197, 71, 0.35));
+}
+
+.page-brand h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3.5vw, 1.75rem);
+  color: var(--rr-gold-light);
+}
+
+.page-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  color: var(--rr-gold-mid);
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.page-content {
+  width: 100%;
+}
+
+.btn-edit,
+.btn-create-order-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--rr-black);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  background: linear-gradient(180deg, var(--rr-gold) 0%, var(--rr-gold-dark) 100%);
+  color: var(--rr-black);
+  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
+}
+
+.btn-edit:hover,
+.btn-create-order-link:hover {
+  filter: brightness(1.08);
+}

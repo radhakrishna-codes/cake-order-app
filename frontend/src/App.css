@@ -1,0 +1,13 @@
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 90% 55% at 10% -5%, rgba(232, 197, 71, 0.55), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 95% 105%, rgba(26, 26, 26, 0.12), transparent 50%),
+    linear-gradient(
+      165deg,
+      var(--rr-gold-pale) 0%,
+      var(--rr-gold-light) 28%,
+      #f0d878 62%,
+      var(--rr-gold-mid) 100%
+    );
+}
