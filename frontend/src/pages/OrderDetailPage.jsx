@@ -68,7 +68,21 @@ export default function OrderDetailPage() {
               <dd>{order.modifications}</dd>
             </div>
           ) : null}
-          {order.referenceImageName ? (
+          {order.referenceImages?.length ? (
+            <div className="detail-full detail-reference-images">
+              <dt>Reference Images</dt>
+              <dd className="reference-image-list">
+                {order.referenceImages.map((src, index) => (
+                  <img
+                    key={src}
+                    src={src}
+                    alt={`Reference cake ${index + 1}`}
+                    className="reference-image"
+                  />
+                ))}
+              </dd>
+            </div>
+          ) : order.referenceImageName ? (
             <div className="detail-full">
               <dt>Reference Image</dt>
               <dd>{order.referenceImageName}</dd>

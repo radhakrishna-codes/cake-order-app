@@ -1,3 +1,6 @@
+import referenceCakeHearts from '../assets/reference-cake-hearts.png'
+import referenceCakeBirthday from '../assets/reference-cake-birthday.png'
+
 export const DUMMY_ORDERS = [
   {
     id: 'ord-1',
@@ -122,8 +125,9 @@ export const DUMMY_ORDERS = [
     advancePaid: 1500,
     pending: 1300,
     greetings: 'Happy Wedding Anniversary',
-    modifications: 'Two-tier design',
-    referenceImageName: null,
+    modifications: 'Two-tier design with heart toppers',
+    referenceImageName: 'reference-cake-hearts.png, reference-cake-birthday.png',
+    referenceImages: [referenceCakeHearts, referenceCakeBirthday],
   },
   {
     id: 'ord-10',
