@@ -72,6 +72,21 @@
   width: 100%;
 }
 
+.page-message {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  color: #44403c;
+}
+
+.page-message-error {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
 .btn-edit,
 .btn-create-order-link {
   display: inline-flex;

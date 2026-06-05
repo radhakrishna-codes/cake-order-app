@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
 import logo from '../assets/rajaranilogo.png'
 import { useOrders } from '../context/OrdersContext'
-import { formatCakeLabel, formatPickupTime, groupOrdersByPickupDate } from '../utils/orderUtils'
+import { formatCakeLabel, formatPickupTime, getOrderScheduleTime, groupOrdersByPickupDate } from '../utils/orderUtils'
 import './HomePage.css'
 
 export default function HomePage() {
-  const { orders } = useOrders()
+  const { orders, loading, error, refreshOrders } = useOrders()
   const grouped = groupOrdersByPickupDate(orders)
 
   return (
@@ -24,12 +24,21 @@ export default function HomePage() {
       </header>
 
       <section className="orders-list" aria-label="Cake orders by pickup date">
-        {grouped.length === 0 ? (
+        {loading ? (
+          <p className="orders-empty">Loading orders...</p>
+        ) : error ? (
+          <div className="orders-empty orders-error">
+            <p>{error}</p>
+            <button type="button" className="btn-retry" onClick={refreshOrders}>
+              Try again
+            </button>
+          </div>
+        ) : grouped.length === 0 ? (
           <p className="orders-empty">No cake orders yet. Create your first order.</p>
         ) : (
           grouped.map((group) => (
             <article key={group.pickupDate} className="pickup-group">
-              <h2 className="pickup-heading">Pickup: {group.pickupLabel}</h2>
+              <h2 className="pickup-heading">{group.pickupLabel}</h2>
               <ol className="cake-items">
                 {group.items.map((order) => (
                   <li key={order.id}>
@@ -40,7 +49,7 @@ export default function HomePage() {
                       <span className="cake-item-meta">
                         <span className="cake-item-customer">{order.customerName}</span>
                         <span className="cake-item-time">
-                          {formatPickupTime(order.pickupTime)}
+                          {formatPickupTime(getOrderScheduleTime(order))}
                         </span>
                       </span>
                     </Link>

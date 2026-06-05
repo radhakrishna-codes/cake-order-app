@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import PageLayout from '../components/PageLayout'
 import { useOrders } from '../context/OrdersContext'
@@ -6,12 +7,66 @@ import './OrderDetailPage.css'
 
 export default function OrderDetailPage() {
   const { orderId } = useParams()
-  const { getOrderById } = useOrders()
-  const order = getOrderById(orderId)
+  const { getOrderById, fetchOrderById, loading: ordersLoading } = useOrders()
+  const [order, setOrder] = useState(() => getOrderById(orderId))
+  const [loading, setLoading] = useState(!order)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadOrder() {
+      const cached = getOrderById(orderId)
+      if (cached) {
+        setOrder(cached)
+        setLoading(false)
+        return
+      }
+
+      if (ordersLoading) return
+
+      setLoading(true)
+      setError(null)
+      try {
+        const fetched = await fetchOrderById(orderId)
+        if (!cancelled) setOrder(fetched)
+      } catch (err) {
+        if (!cancelled) {
+          setOrder(null)
+          setError(err.message ?? 'Failed to load order')
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    loadOrder()
+    return () => {
+      cancelled = true
+    }
+  }, [orderId, getOrderById, fetchOrderById, ordersLoading])
+
+  if (loading || ordersLoading) {
+    return (
+      <PageLayout title="Cake Order Details" backTo="/">
+        <p className="page-message">Loading order...</p>
+      </PageLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <PageLayout title="Cake Order Details" backTo="/">
+        <p className="page-message page-message-error">{error}</p>
+      </PageLayout>
+    )
+  }
 
   if (!order) {
     return <Navigate to="/" replace />
   }
+
+  const imageSources = order.referenceImages ?? []
 
   return (
     <PageLayout
@@ -39,11 +94,31 @@ export default function OrderDetailPage() {
             <dd>{order.size}</dd>
           </div>
           <div>
-            <dt>Pickup</dt>
-            <dd>
-              {formatPickupDateLabel(order.pickupDate)} at {formatPickupTime(order.pickupTime)}
-            </dd>
+            <dt>Order Type</dt>
+            <dd>{order.orderType === 'delivery' ? 'Delivery' : 'Pick up'}</dd>
           </div>
+          {order.orderType === 'delivery' ? (
+            <>
+              <div>
+                <dt>Delivery</dt>
+                <dd>
+                  {formatPickupDateLabel(order.deliveryDate)} at{' '}
+                  {formatPickupTime(order.deliveryTime)}
+                </dd>
+              </div>
+              <div className="detail-full">
+                <dt>Delivery Address</dt>
+                <dd>{order.deliveryAddress}</dd>
+              </div>
+            </>
+          ) : (
+            <div>
+              <dt>Pickup</dt>
+              <dd>
+                {formatPickupDateLabel(order.pickupDate)} at {formatPickupTime(order.pickupTime)}
+              </dd>
+            </div>
+          )}
           <div>
             <dt>Total</dt>
             <dd>₹{order.total.toFixed(2)}</dd>
@@ -68,13 +143,13 @@ export default function OrderDetailPage() {
               <dd>{order.modifications}</dd>
             </div>
           ) : null}
-          {order.referenceImages?.length ? (
+          {imageSources.length ? (
             <div className="detail-full detail-reference-images">
               <dt>Reference Images</dt>
               <dd className="reference-image-list">
-                {order.referenceImages.map((src, index) => (
+                {imageSources.map((src, index) => (
                   <img
-                    key={src}
+                    key={`${src}-${index}`}
                     src={src}
                     alt={`Reference cake ${index + 1}`}
                     className="reference-image"

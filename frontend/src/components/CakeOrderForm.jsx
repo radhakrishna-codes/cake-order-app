@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { uploadReferenceImage } from '../api/uploadsApi'
 import { orderToFormState } from '../utils/orderFormUtils'
 import './CakeOrderForm.css'
 
@@ -11,12 +12,17 @@ const FLAVORS = [
 
 const SIZES = ['1 lb', '2 lb', '4 lb', '6 lb', '8 lb']
 
+const ORDER_TYPES = [
+  { value: 'pickup', label: 'Pick up' },
+  { value: 'delivery', label: 'Delivery' },
+]
+
 const SIZE_PRICES = {
-  '1 lb': 500,
-  '2 lb': 900,
-  '4 lb': 1600,
-  '6 lb': 2200,
-  '8 lb': 2800,
+  '1 lb': 30,
+  '2 lb': 60,
+  '4 lb': 120,
+  '6 lb': 180,
+  '8 lb': 240,
 }
 
 const initialFormState = {
@@ -24,14 +30,24 @@ const initialFormState = {
   flavor: '',
   customFlavor: '',
   size: '',
+  orderType: 'pickup',
   pickupDate: '',
   pickupTime: '',
+  deliveryDate: '',
+  deliveryTime: '',
+  deliveryAddress: '',
   total: '',
   advancePaid: '',
   greetings: '',
   modifications: '',
   referenceImage: null,
   referenceImagePreview: '',
+  existingReferenceImages: [],
+  existingReferenceImageName: null,
+}
+
+function isBlobPreviewUrl(url) {
+  return typeof url === 'string' && url.startsWith('blob:')
 }
 
 export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel, onSave }) {
@@ -39,6 +55,10 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     initialOrder ? orderToFormState(initialOrder) : initialFormState,
   )
   const [errors, setErrors] = useState({})
+  const [isSaving, setIsSaving] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+
+  const isPickup = form.orderType === 'pickup'
 
   useEffect(() => {
     if (initialOrder) {
@@ -74,7 +94,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
 
   useEffect(() => {
     return () => {
-      if (form.referenceImagePreview) {
+      if (isBlobPreviewUrl(form.referenceImagePreview)) {
         URL.revokeObjectURL(form.referenceImagePreview)
       }
     }
@@ -85,16 +105,29 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
+  function handleOrderTypeChange(value) {
+    setForm((current) => ({
+      ...current,
+      orderType: value,
+      pickupDate: value === 'pickup' ? current.pickupDate : '',
+      pickupTime: value === 'pickup' ? current.pickupTime : '',
+      deliveryDate: value === 'delivery' ? current.deliveryDate : '',
+      deliveryTime: value === 'delivery' ? current.deliveryTime : '',
+      deliveryAddress: value === 'delivery' ? current.deliveryAddress : '',
+    }))
+    setErrors({})
+  }
+
   function handleImageChange(event) {
     const file = event.target.files?.[0]
 
     if (!file) {
       updateField('referenceImage', null)
-      updateField('referenceImagePreview', '')
+      updateField('referenceImagePreview', form.existingReferenceImages?.[0] ?? '')
       return
     }
 
-    if (form.referenceImagePreview) {
+    if (isBlobPreviewUrl(form.referenceImagePreview)) {
       URL.revokeObjectURL(form.referenceImagePreview)
     }
 
@@ -119,12 +152,27 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
       nextErrors.size = 'Please select a cake size'
     }
 
-    if (!form.pickupDate) {
-      nextErrors.pickupDate = 'Pick up date is required'
+    if (!form.orderType) {
+      nextErrors.orderType = 'Please select an order type'
     }
 
-    if (!form.pickupTime) {
-      nextErrors.pickupTime = 'Pick up time is required'
+    if (isPickup) {
+      if (!form.pickupDate) {
+        nextErrors.pickupDate = 'Pick up date is required'
+      }
+      if (!form.pickupTime) {
+        nextErrors.pickupTime = 'Pick up time is required'
+      }
+    } else {
+      if (!form.deliveryDate) {
+        nextErrors.deliveryDate = 'Delivery date is required'
+      }
+      if (!form.deliveryTime) {
+        nextErrors.deliveryTime = 'Delivery time is required'
+      }
+      if (!form.deliveryAddress.trim()) {
+        nextErrors.deliveryAddress = 'Delivery address is required'
+      }
     }
 
     if (form.total === '' || Number.isNaN(parseFloat(form.total))) {
@@ -139,35 +187,57 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     return Object.keys(nextErrors).length === 0
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
 
     if (!validate()) {
       return
     }
 
-    const order = {
-      customerName: form.customerName.trim(),
-      flavor:
-        form.flavor === 'custom'
-          ? form.customFlavor.trim()
-          : FLAVORS.find((item) => item.value === form.flavor)?.label ?? form.flavor,
-      size: form.size,
-      pickupDate: form.pickupDate,
-      pickupTime: form.pickupTime,
-      total: parseFloat(form.total),
-      advancePaid: parseFloat(form.advancePaid),
-      pending: parseFloat(pending),
-      greetings: form.greetings.trim(),
-      modifications: form.modifications.trim(),
-      referenceImageName: form.referenceImage?.name ?? null,
-    }
+    setIsSaving(true)
+    setSubmitError(null)
+    try {
+      let referenceImages = form.existingReferenceImages ?? []
+      let referenceImageName = form.existingReferenceImageName ?? null
 
-    onSave?.(order)
+      if (form.referenceImage) {
+        const uploaded = await uploadReferenceImage(form.referenceImage)
+        referenceImages = [uploaded.url]
+        referenceImageName = uploaded.filename
+      }
+
+      const order = {
+        customerName: form.customerName.trim(),
+        flavor:
+          form.flavor === 'custom'
+            ? form.customFlavor.trim()
+            : FLAVORS.find((item) => item.value === form.flavor)?.label ?? form.flavor,
+        size: form.size,
+        orderType: form.orderType,
+        pickupDate: isPickup ? form.pickupDate : '',
+        pickupTime: isPickup ? form.pickupTime : '',
+        deliveryDate: isPickup ? '' : form.deliveryDate,
+        deliveryTime: isPickup ? '' : form.deliveryTime,
+        deliveryAddress: isPickup ? '' : form.deliveryAddress.trim(),
+        total: parseFloat(form.total),
+        advancePaid: parseFloat(form.advancePaid),
+        pending: parseFloat(pending),
+        greetings: form.greetings.trim(),
+        modifications: form.modifications.trim(),
+        referenceImageName,
+        referenceImages,
+      }
+
+      await onSave?.(order)
+    } catch (err) {
+      setSubmitError(err.message ?? 'Failed to save order')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   function handleReset() {
-    if (form.referenceImagePreview) {
+    if (isBlobPreviewUrl(form.referenceImagePreview)) {
       URL.revokeObjectURL(form.referenceImagePreview)
     }
 
@@ -179,8 +249,6 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     <div className="cake-order-form-body">
       <form className="cake-order-form" onSubmit={handleSubmit} noValidate>
         <section className="form-section">
-          <h2>Mandatory Details</h2>
-
           <div className="field">
             <label htmlFor="customerName">
               Customer Name <span className="required">*</span>
@@ -249,41 +317,117 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             {errors.size && <p className="error">{errors.size}</p>}
           </fieldset>
 
-          <div className="field-row">
-            <div className="field">
-              <label htmlFor="pickupDate">
-                Pick Up Date <span className="required">*</span>
-              </label>
-              <input
-                id="pickupDate"
-                type="date"
-                value={form.pickupDate}
-                min={new Date().toISOString().split('T')[0]}
-                onChange={(event) => updateField('pickupDate', event.target.value)}
-                aria-invalid={Boolean(errors.pickupDate)}
-              />
-              {errors.pickupDate && <p className="error">{errors.pickupDate}</p>}
+          <fieldset className="field">
+            <legend>
+              Order Type <span className="required">*</span>
+            </legend>
+            <div className="radio-group order-type-group">
+              {ORDER_TYPES.map((type) => (
+                <label key={type.value} className="radio-option">
+                  <input
+                    type="radio"
+                    name="orderType"
+                    value={type.value}
+                    checked={form.orderType === type.value}
+                    onChange={(event) => handleOrderTypeChange(event.target.value)}
+                  />
+                  <span>{type.label}</span>
+                </label>
+              ))}
             </div>
+            {errors.orderType && <p className="error">{errors.orderType}</p>}
+          </fieldset>
 
-            <div className="field">
-              <label htmlFor="pickupTime">
-                Pick Up Time <span className="required">*</span>
-              </label>
-              <div className="time-input-wrapper">
-                <span className="clock-icon" aria-hidden="true">
-                  🕐
-                </span>
+          {isPickup ? (
+            <div className="field-row">
+              <div className="field">
+                <label htmlFor="pickupDate">
+                  Pick Up Date <span className="required">*</span>
+                </label>
                 <input
-                  id="pickupTime"
-                  type="time"
-                  value={form.pickupTime}
-                  onChange={(event) => updateField('pickupTime', event.target.value)}
-                  aria-invalid={Boolean(errors.pickupTime)}
+                  id="pickupDate"
+                  type="date"
+                  value={form.pickupDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(event) => updateField('pickupDate', event.target.value)}
+                  aria-invalid={Boolean(errors.pickupDate)}
                 />
+                {errors.pickupDate && <p className="error">{errors.pickupDate}</p>}
               </div>
-              {errors.pickupTime && <p className="error">{errors.pickupTime}</p>}
+
+              <div className="field">
+                <label htmlFor="pickupTime">
+                  Pick Up Time <span className="required">*</span>
+                </label>
+                <div className="time-input-wrapper">
+                  <span className="clock-icon" aria-hidden="true">
+                    🕐
+                  </span>
+                  <input
+                    id="pickupTime"
+                    type="time"
+                    value={form.pickupTime}
+                    onChange={(event) => updateField('pickupTime', event.target.value)}
+                    aria-invalid={Boolean(errors.pickupTime)}
+                  />
+                </div>
+                {errors.pickupTime && <p className="error">{errors.pickupTime}</p>}
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="field-row">
+                <div className="field">
+                  <label htmlFor="deliveryDate">
+                    Delivery Date <span className="required">*</span>
+                  </label>
+                  <input
+                    id="deliveryDate"
+                    type="date"
+                    value={form.deliveryDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(event) => updateField('deliveryDate', event.target.value)}
+                    aria-invalid={Boolean(errors.deliveryDate)}
+                  />
+                  {errors.deliveryDate && <p className="error">{errors.deliveryDate}</p>}
+                </div>
+
+                <div className="field">
+                  <label htmlFor="deliveryTime">
+                    Delivery Time <span className="required">*</span>
+                  </label>
+                  <div className="time-input-wrapper">
+                    <span className="clock-icon" aria-hidden="true">
+                      🕐
+                    </span>
+                    <input
+                      id="deliveryTime"
+                      type="time"
+                      value={form.deliveryTime}
+                      onChange={(event) => updateField('deliveryTime', event.target.value)}
+                      aria-invalid={Boolean(errors.deliveryTime)}
+                    />
+                  </div>
+                  {errors.deliveryTime && <p className="error">{errors.deliveryTime}</p>}
+                </div>
+              </div>
+
+              <div className="field">
+                <label htmlFor="deliveryAddress">
+                  Delivery Address <span className="required">*</span>
+                </label>
+                <textarea
+                  id="deliveryAddress"
+                  rows={3}
+                  value={form.deliveryAddress}
+                  onChange={(event) => updateField('deliveryAddress', event.target.value)}
+                  placeholder="Enter full delivery address"
+                  aria-invalid={Boolean(errors.deliveryAddress)}
+                />
+                {errors.deliveryAddress && <p className="error">{errors.deliveryAddress}</p>}
+              </div>
+            </>
+          )}
 
           <div className="field-row payment-row">
             <div className="field">
@@ -321,7 +465,9 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             </div>
 
             <div className="field">
-              <label htmlFor="pending">Pending</label>
+              <label htmlFor="pending">
+                Pending <span className="optional-tag">(optional)</span>
+              </label>
               <input
                 id="pending"
                 type="text"
@@ -332,13 +478,11 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
               />
             </div>
           </div>
-        </section>
-
-        <section className="form-section optional-section">
-          <h2>Optional Details</h2>
 
           <div className="field">
-            <label htmlFor="greetings">Greetings</label>
+            <label htmlFor="greetings">
+              Greetings <span className="optional-tag">(optional)</span>
+            </label>
             <textarea
               id="greetings"
               rows={3}
@@ -349,7 +493,9 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
           </div>
 
           <div className="field">
-            <label htmlFor="referenceImage">Reference Image</label>
+            <label htmlFor="referenceImage">
+              Reference Image <span className="optional-tag">(optional)</span>
+            </label>
             <input
               id="referenceImage"
               type="file"
@@ -359,13 +505,15 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             {form.referenceImagePreview && (
               <div className="image-preview">
                 <img src={form.referenceImagePreview} alt="Reference preview" />
-                <p>{form.referenceImage?.name}</p>
+                <p>{form.referenceImage?.name ?? form.existingReferenceImageName}</p>
               </div>
             )}
           </div>
 
           <div className="field">
-            <label htmlFor="modifications">Modifications</label>
+            <label htmlFor="modifications">
+              Modifications <span className="optional-tag">(optional)</span>
+            </label>
             <textarea
               id="modifications"
               rows={3}
@@ -376,17 +524,19 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
           </div>
         </section>
 
+        {submitError ? <p className="error form-submit-error">{submitError}</p> : null}
+
         <div className="form-actions">
           {onCancel ? (
-            <button type="button" className="btn-secondary" onClick={onCancel}>
+            <button type="button" className="btn-secondary" onClick={onCancel} disabled={isSaving}>
               Cancel
             </button>
           ) : null}
-          <button type="button" className="btn-secondary" onClick={handleReset}>
+          <button type="button" className="btn-secondary" onClick={handleReset} disabled={isSaving}>
             Reset
           </button>
-          <button type="submit" className="btn-primary">
-            {mode === 'edit' ? 'Update Order' : 'Save Order'}
+          <button type="submit" className="btn-primary" disabled={isSaving}>
+            {isSaving ? 'Saving...' : mode === 'edit' ? 'Update Order' : 'Save Order'}
           </button>
         </div>
       </form>

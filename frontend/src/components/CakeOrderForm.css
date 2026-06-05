@@ -4,36 +4,23 @@
 
 .cake-order-form {
   display: grid;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   background: linear-gradient(180deg, var(--rr-card) 0%, var(--rr-cream) 100%);
   border: 2px solid var(--rr-gold-dark);
   border-radius: 16px;
-  padding: 1.25rem;
+  padding: 1.25rem 1.25rem 1.5rem;
   box-shadow: 0 8px 24px var(--rr-shadow);
-}
-
-.form-section h2 {
-  margin: 0 0 1rem;
-  font-size: 1.1rem;
-  color: var(--rr-black);
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--rr-gold);
-}
-
-.optional-section {
-  background: linear-gradient(180deg, var(--rr-cream) 0%, var(--rr-gold-pale) 100%);
 }
 
 .field {
   display: grid;
   gap: 0.45rem;
-  margin-bottom: 1rem;
-}
-
-.field:last-child {
   margin-bottom: 0;
 }
 
@@ -41,6 +28,11 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1rem;
+  margin-bottom: 0;
+}
+
+.field-row .field {
+  margin-bottom: 0;
 }
 
 label,
@@ -52,6 +44,12 @@ legend {
 
 .required {
   color: #dc2626;
+}
+
+.optional-tag {
+  font-weight: 500;
+  color: #78716c;
+  font-size: 0.85rem;
 }
 
 input[type='text'],
@@ -99,6 +97,10 @@ fieldset {
   grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
 }
 
+.order-type-group {
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
+}
+
 .radio-option {
   display: flex;
   align-items: center;
@@ -142,6 +144,10 @@ fieldset {
   font-size: 0.85rem;
 }
 
+.form-submit-error {
+  margin-top: 0.25rem;
+}
+
 .image-preview {
   margin-top: 0.75rem;
   display: grid;
@@ -166,6 +172,7 @@ fieldset {
   flex-wrap: wrap;
   gap: 0.75rem;
   justify-content: flex-end;
+  padding-top: 0.25rem;
 }
 
 .btn-primary,
@@ -200,7 +207,7 @@ fieldset {
 
 @media (max-width: 640px) {
   .form-section {
-    padding: 1rem;
+    padding: 1rem 1rem 1.25rem;
   }
 
   .payment-row {

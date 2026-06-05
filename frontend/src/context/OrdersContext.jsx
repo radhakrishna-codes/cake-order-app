@@ -1,23 +1,55 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
-import { DUMMY_ORDERS } from '../data/dummyOrders'
-import { createOrderId } from '../utils/orderUtils'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import * as ordersApi from '../api/ordersApi'
 
 const OrdersContext = createContext(null)
 
 export function OrdersProvider({ children }) {
-  const [orders, setOrders] = useState(DUMMY_ORDERS)
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const addOrder = useCallback((orderData) => {
-    const newOrder = { ...orderData, id: createOrderId() }
-    setOrders((current) => [...current, newOrder])
-    return newOrder
+  const refreshOrders = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await ordersApi.listOrders()
+      setOrders(data)
+    } catch (err) {
+      setError(err.message ?? 'Failed to load orders')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const updateOrder = useCallback((id, orderData) => {
-    setOrders((current) =>
-      current.map((order) => (order.id === id ? { ...orderData, id } : order)),
-    )
+  useEffect(() => {
+    refreshOrders()
+  }, [refreshOrders])
+
+  const addOrder = useCallback(async (orderData) => {
+    const created = await ordersApi.createOrder(orderData)
+    setOrders((current) => [...current, created])
+    return created
   }, [])
+
+  const updateOrder = useCallback(async (id, orderData) => {
+    const updated = await ordersApi.updateOrder(id, orderData)
+    setOrders((current) => current.map((order) => (order.id === id ? updated : order)))
+    return updated
+  }, [])
+
+  const fetchOrderById = useCallback(async (id) => {
+    const cached = orders.find((order) => order.id === id)
+    if (cached) return cached
+
+    const fetched = await ordersApi.getOrder(id)
+    setOrders((current) => {
+      const exists = current.some((order) => order.id === id)
+      return exists
+        ? current.map((order) => (order.id === id ? fetched : order))
+        : [...current, fetched]
+    })
+    return fetched
+  }, [orders])
 
   const getOrderById = useCallback(
     (id) => orders.find((order) => order.id === id) ?? null,
@@ -25,8 +57,17 @@ export function OrdersProvider({ children }) {
   )
 
   const value = useMemo(
-    () => ({ orders, addOrder, updateOrder, getOrderById }),
-    [orders, addOrder, updateOrder, getOrderById],
+    () => ({
+      orders,
+      loading,
+      error,
+      refreshOrders,
+      addOrder,
+      updateOrder,
+      fetchOrderById,
+      getOrderById,
+    }),
+    [orders, loading, error, refreshOrders, addOrder, updateOrder, fetchOrderById, getOrderById],
   )
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>

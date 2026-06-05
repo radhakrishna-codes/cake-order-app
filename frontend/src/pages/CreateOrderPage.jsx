@@ -7,9 +7,9 @@ export default function CreateOrderPage() {
   const navigate = useNavigate()
   const { addOrder } = useOrders()
 
-  function handleSave(orderData) {
-    const order = addOrder(orderData)
-    navigate(`/orders/${order.id}`)
+  async function handleSave(orderData) {
+    await addOrder(orderData)
+    navigate('/')
   }
 
   return (

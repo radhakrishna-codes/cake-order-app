@@ -34,27 +34,46 @@ export function formatPickupTime(time24) {
   return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`
 }
 
+export function getOrderScheduleDate(order) {
+  return order.orderType === 'delivery' ? order.deliveryDate : order.pickupDate
+}
+
+export function getOrderScheduleTime(order) {
+  return order.orderType === 'delivery' ? order.deliveryTime : order.pickupTime
+}
+
+export function getOrderScheduleLabel(order) {
+  const prefix = order.orderType === 'delivery' ? 'Delivery' : 'Pickup'
+  const date = getOrderScheduleDate(order)
+  return `${prefix}: ${formatPickupDateLabel(date)}`
+}
+
 export function groupOrdersByPickupDate(orders) {
   const groups = new Map()
 
   for (const order of orders) {
-    const existing = groups.get(order.pickupDate)
+    const scheduleDate = getOrderScheduleDate(order)
+    const scheduleType = order.orderType === 'delivery' ? 'delivery' : 'pickup'
+    const groupKey = `${scheduleType}:${scheduleDate}`
+    const existing = groups.get(groupKey)
     if (existing) {
-      existing.push(order)
+      existing.items.push(order)
     } else {
-      groups.set(order.pickupDate, [order])
+      groups.set(groupKey, {
+        scheduleDate,
+        scheduleType,
+        items: [order],
+      })
     }
   }
 
-  return [...groups.entries()]
-    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-    .map(([pickupDate, items]) => ({
-      pickupDate,
-      pickupLabel: formatPickupDateLabel(pickupDate),
-      items: [...items].sort((a, b) => a.pickupTime.localeCompare(b.pickupTime)),
+  return [...groups.values()]
+    .sort((a, b) => a.scheduleDate.localeCompare(b.scheduleDate))
+    .map((group) => ({
+      pickupDate: group.scheduleDate,
+      pickupLabel: `${group.scheduleType === 'delivery' ? 'Delivery' : 'Pickup'}: ${formatPickupDateLabel(group.scheduleDate)}`,
+      items: [...group.items].sort((a, b) =>
+        getOrderScheduleTime(a).localeCompare(getOrderScheduleTime(b)),
+      ),
     }))
-}
-
-export function createOrderId() {
-  return `ord-${Date.now()}`
 }

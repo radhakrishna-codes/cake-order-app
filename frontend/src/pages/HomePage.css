@@ -89,6 +89,22 @@
   border: 2px dashed var(--rr-gold-dark);
 }
 
+.orders-error {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+}
+
+.btn-retry {
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--rr-gold) 0%, var(--rr-gold-dark) 100%);
+  color: var(--rr-black);
+}
+
 .pickup-group {
   min-width: 0;
   height: 100%;
