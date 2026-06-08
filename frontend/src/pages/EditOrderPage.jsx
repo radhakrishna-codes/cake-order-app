@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import CakeOrderForm from '../components/CakeOrderForm'
+import ConfirmDialog from '../components/ConfirmDialog'
 import PageLayout from '../components/PageLayout'
 import { useOrders } from '../context/OrdersContext'
 import { formatCakeLabel } from '../utils/orderUtils'
+import './EditOrderPage.css'
 
 export default function EditOrderPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
-  const { getOrderById, fetchOrderById, updateOrder, loading: ordersLoading } = useOrders()
+  const { getOrderById, fetchOrderById, updateOrder, deleteOrder, loading: ordersLoading } =
+    useOrders()
   const [order, setOrder] = useState(() => getOrderById(orderId))
   const [loading, setLoading] = useState(!order)
   const [error, setError] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -52,6 +58,18 @@ export default function EditOrderPage() {
     navigate('/')
   }
 
+  async function handleConfirmDelete() {
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteOrder(order.id)
+      navigate('/')
+    } catch (err) {
+      setDeleteError(err.message ?? 'Failed to delete order')
+      setIsDeleting(false)
+    }
+  }
+
   if (loading || ordersLoading) {
     return (
       <PageLayout title="Edit Cake Order" backTo="/">
@@ -73,17 +91,43 @@ export default function EditOrderPage() {
   }
 
   return (
-    <PageLayout
-      title="Edit Cake Order"
-      subtitle={formatCakeLabel(order.flavor, order.size)}
-      backTo={`/orders/${order.id}`}
-    >
-      <CakeOrderForm
-        mode="edit"
-        initialOrder={order}
-        onCancel={() => navigate(`/orders/${order.id}`)}
-        onSave={handleSave}
-      />
-    </PageLayout>
+    <>
+      <PageLayout
+        title="Edit Cake Order"
+        subtitle={formatCakeLabel(order.flavor, order.size)}
+        backTo={`/orders/${order.id}`}
+      >
+        <CakeOrderForm
+          mode="edit"
+          initialOrder={order}
+          onCancel={() => navigate(`/orders/${order.id}`)}
+          onSave={handleSave}
+        />
+
+        <div className="edit-order-danger-zone">
+          <button
+            type="button"
+            className="btn-delete-order"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            Delete Order
+          </button>
+          {deleteError ? <p className="edit-delete-error">{deleteError}</p> : null}
+        </div>
+      </PageLayout>
+
+      {showDeleteConfirm ? (
+        <ConfirmDialog
+          title="Delete this order?"
+          message={`Are you sure you want to remove ${order.customerName}'s cake order? This action cannot be undone.`}
+          confirmLabel="Yes, delete"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => {
+            if (!isDeleting) setShowDeleteConfirm(false)
+          }}
+          isLoading={isDeleting}
+        />
+      ) : null}
+    </>
   )
 }

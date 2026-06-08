@@ -1,13 +1,14 @@
 # Cake Order App
 
-Cross-platform cake shop order manager with a React + Electron frontend and Python backend.
+Cross-platform cake shop order manager with a React + Electron frontend.
+
+The Python API lives in a separate repo: [rr-cake-order-backend](https://github.com/radhakrishna-codes/rr-cake-order-backend).
 
 ## Project Structure
 
 ```
 cake-order-app/
-├── frontend/   # React + Vite + Electron (Mac desktop + responsive web UI)
-└── backend/    # Python API (coming next)
+└── frontend/   # React + Vite + Electron (Mac desktop + responsive web UI)
 ```
 
 ## Frontend (run locally)
@@ -30,6 +31,21 @@ npm install
 npm run electron:dev
 ```
 
+## Backend (separate repo)
+
+Clone and run the API from [rr-cake-order-backend](https://github.com/radhakrishna-codes/rr-cake-order-backend):
+
+```bash
+git clone https://github.com/radhakrishna-codes/rr-cake-order-backend.git
+cd rr-cake-order-backend
+cp .env.example .env   # add MongoDB credentials
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload --port 8000
+```
+
+The Vite dev server proxies `/api` and `/uploads` to `http://127.0.0.1:8000`.
+
 ## Cake Order Form
 
 ### Mandatory fields
@@ -50,8 +66,4 @@ npm run electron:dev
 ## Platform notes
 
 - **Mac desktop**: Use `npm run electron:dev` in `frontend/`.
-- **iPhone / iOS**: Electron does not run on iOS. The React UI is responsive and can be served as a web/PWA app, or wrapped later with Capacitor for a native iOS build once the Python backend is ready.
-
-## Backend
-
-The Python backend stub lives in `backend/`. API integration will connect the form to persistent storage in a follow-up step.
+- **iPhone / iOS**: Electron does not run on iOS. The React UI is responsive and can be served as a web/PWA app, or wrapped later with Capacitor for a native iOS build.

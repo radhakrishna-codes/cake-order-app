@@ -1,0 +1,73 @@
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(26, 26, 26, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.confirm-dialog {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.25rem 1.35rem 1.35rem;
+  border: 1px solid #e7e5e4;
+  box-shadow: 0 16px 40px rgba(26, 26, 26, 0.18);
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1.1rem;
+  color: #1c1917;
+}
+
+.confirm-dialog p {
+  margin: 0 0 1.15rem;
+  color: #57534e;
+  line-height: 1.5;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.confirm-dialog-actions .btn-secondary {
+  border: 1px solid #d6d3d1;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #fafaf9;
+  color: #44403c;
+}
+
+.confirm-dialog-actions .btn-secondary:hover:not(:disabled) {
+  background: #f5f5f4;
+}
+
+.btn-delete-confirm {
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-delete-confirm:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-delete-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

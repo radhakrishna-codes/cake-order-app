@@ -37,6 +37,11 @@ export function OrdersProvider({ children }) {
     return updated
   }, [])
 
+  const deleteOrder = useCallback(async (id) => {
+    await ordersApi.deleteOrder(id)
+    setOrders((current) => current.filter((order) => order.id !== id))
+  }, [])
+
   const fetchOrderById = useCallback(async (id) => {
     const cached = orders.find((order) => order.id === id)
     if (cached) return cached
@@ -64,10 +69,11 @@ export function OrdersProvider({ children }) {
       refreshOrders,
       addOrder,
       updateOrder,
+      deleteOrder,
       fetchOrderById,
       getOrderById,
     }),
-    [orders, loading, error, refreshOrders, addOrder, updateOrder, fetchOrderById, getOrderById],
+    [orders, loading, error, refreshOrders, addOrder, updateOrder, deleteOrder, fetchOrderById, getOrderById],
   )
 
   return <OrdersContext.Provider value={value}>{children}</OrdersContext.Provider>

@@ -6,7 +6,3 @@ dist/
 .env.*
 !.env.example
 !**/.env.example
-__pycache__/
-.venv/
-*.pyc
-backend/uploads/
