@@ -1,69 +1,16 @@
-# Cake Order App
+# React + Vite
 
-Cross-platform cake shop order manager with a React + Electron frontend.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-The Python API lives in a separate repo: [rr-cake-order-backend](https://github.com/radhakrishna-codes/rr-cake-order-backend).
+Currently, two official plugins are available:
 
-## Project Structure
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-```
-cake-order-app/
-└── frontend/   # React + Vite + Electron (Mac desktop + responsive web UI)
-```
+## React Compiler
 
-## Frontend (run locally)
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-### Browser only (fastest for UI development)
+## Expanding the ESLint configuration
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:5174
-
-### Electron desktop app (Mac)
-
-```bash
-cd frontend
-npm install
-npm run electron:dev
-```
-
-## Backend (separate repo)
-
-Clone and run the API from [rr-cake-order-backend](https://github.com/radhakrishna-codes/rr-cake-order-backend):
-
-```bash
-git clone https://github.com/radhakrishna-codes/rr-cake-order-backend.git
-cd rr-cake-order-backend
-cp .env.example .env   # add MongoDB credentials
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
-
-The Vite dev server proxies `/api` and `/uploads` to `http://127.0.0.1:8000`.
-
-## Cake Order Form
-
-### Mandatory fields
-- Customer name
-- Flavor (Black Forest, Strawberry, Mango, Custom)
-- Size (1 lb, 2 lb, 4 lb, 6 lb, 8 lb)
-- Pick up date (calendar)
-- Pick up time (clock picker)
-- Total
-- Advance paid
-- Pending (auto-calculated)
-
-### Optional fields
-- Greetings
-- Reference image upload
-- Modifications
-
-## Platform notes
-
-- **Mac desktop**: Use `npm run electron:dev` in `frontend/`.
-- **iPhone / iOS**: Electron does not run on iOS. The React UI is responsive and can be served as a web/PWA app, or wrapped later with Capacitor for a native iOS build.
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.

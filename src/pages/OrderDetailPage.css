@@ -6,6 +6,16 @@
   box-shadow: 0 8px 24px var(--rr-shadow);
 }
 
+.detail-delete-error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}
+
 .detail-grid {
   margin: 0;
   display: grid;

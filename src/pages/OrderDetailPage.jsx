@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import ConfirmDialog from '../components/ConfirmDialog'
 import PageLayout from '../components/PageLayout'
 import { useOrders } from '../context/OrdersContext'
 import { formatCakeLabel, formatPickupDateLabel, formatPickupTime } from '../utils/orderUtils'
@@ -7,10 +8,14 @@ import './OrderDetailPage.css'
 
 export default function OrderDetailPage() {
   const { orderId } = useParams()
-  const { getOrderById, fetchOrderById, loading: ordersLoading } = useOrders()
+  const navigate = useNavigate()
+  const { getOrderById, fetchOrderById, deleteOrder, loading: ordersLoading } = useOrders()
   const [order, setOrder] = useState(() => getOrderById(orderId))
   const [loading, setLoading] = useState(!order)
   const [error, setError] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -46,6 +51,18 @@ export default function OrderDetailPage() {
     }
   }, [orderId, getOrderById, fetchOrderById, ordersLoading])
 
+  async function handleConfirmDelete() {
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteOrder(order.id)
+      navigate('/')
+    } catch (err) {
+      setDeleteError(err.message ?? 'Failed to delete order')
+      setIsDeleting(false)
+    }
+  }
+
   if (loading || ordersLoading) {
     return (
       <PageLayout title="Cake Order Details" backTo="/">
@@ -69,18 +86,29 @@ export default function OrderDetailPage() {
   const imageSources = order.referenceImages ?? []
 
   return (
-    <PageLayout
-      title="Cake Order Details"
-      subtitle={formatCakeLabel(order.flavor, order.size)}
-      backTo="/"
-      actions={
-        <Link to={`/orders/${order.id}/edit`} className="btn-edit">
-          Edit Order
-        </Link>
-      }
-    >
-      <section className="order-detail-card">
-        <dl className="detail-grid">
+    <>
+      <PageLayout
+        title="Cake Order Details"
+        subtitle={formatCakeLabel(order.flavor, order.size)}
+        backTo="/"
+        actions={
+          <>
+            <button
+              type="button"
+              className="btn-delete"
+              onClick={() => setShowDeleteConfirm(true)}
+            >
+              Delete
+            </button>
+            <Link to={`/orders/${order.id}/edit`} className="btn-edit">
+              Edit Order
+            </Link>
+          </>
+        }
+      >
+        {deleteError ? <p className="detail-delete-error">{deleteError}</p> : null}
+        <section className="order-detail-card">
+          <dl className="detail-grid">
           <div>
             <dt>Customer</dt>
             <dd>{order.customerName}</dd>
@@ -131,6 +159,10 @@ export default function OrderDetailPage() {
             <dt>Pending</dt>
             <dd>₹{order.pending.toFixed(2)}</dd>
           </div>
+          <div>
+            <dt>Order Taken By</dt>
+            <dd>{order.orderTakenBy}</dd>
+          </div>
           {order.greetings ? (
             <div className="detail-full">
               <dt>Greetings</dt>
@@ -163,8 +195,22 @@ export default function OrderDetailPage() {
               <dd>{order.referenceImageName}</dd>
             </div>
           ) : null}
-        </dl>
-      </section>
-    </PageLayout>
+          </dl>
+        </section>
+      </PageLayout>
+
+      {showDeleteConfirm ? (
+        <ConfirmDialog
+          title="Delete this order?"
+          message={`Are you sure you want to delete ${order.customerName}'s order?`}
+          confirmLabel="Yes"
+          onConfirm={handleConfirmDelete}
+          onCancel={() => {
+            if (!isDeleting) setShowDeleteConfirm(false)
+          }}
+          isLoading={isDeleting}
+        />
+      ) : null}
+    </>
   )
 }

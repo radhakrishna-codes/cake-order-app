@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { uploadReferenceImage } from '../api/uploadsApi'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { uploadReferenceImages } from '../api/uploadsApi'
 import { orderToFormState } from '../utils/orderFormUtils'
 import './CakeOrderForm.css'
 
@@ -10,7 +10,14 @@ const FLAVORS = [
   { value: 'custom', label: 'Custom' },
 ]
 
-const SIZES = ['1 lb', '2 lb', '4 lb', '6 lb', '8 lb']
+const SIZES = [
+  { value: '1 lb', label: '1 lb' },
+  { value: '2 lb', label: '2 lb' },
+  { value: '4 lb', label: '4 lb' },
+  { value: '6 lb', label: '6 lb' },
+  { value: '8 lb', label: '8 lb' },
+  { value: 'custom', label: 'Custom' },
+]
 
 const ORDER_TYPES = [
   { value: 'pickup', label: 'Pick up' },
@@ -30,6 +37,7 @@ const initialFormState = {
   flavor: '',
   customFlavor: '',
   size: '',
+  customSize: '',
   orderType: 'pickup',
   pickupDate: '',
   pickupTime: '',
@@ -38,16 +46,22 @@ const initialFormState = {
   deliveryAddress: '',
   total: '',
   advancePaid: '',
+  orderTakenBy: '',
   greetings: '',
   modifications: '',
-  referenceImage: null,
-  referenceImagePreview: '',
-  existingReferenceImages: [],
-  existingReferenceImageName: null,
+  referenceImageItems: [],
 }
 
 function isBlobPreviewUrl(url) {
   return typeof url === 'string' && url.startsWith('blob:')
+}
+
+function revokeBlobUrls(items) {
+  items.forEach((item) => {
+    if (item.source === 'new' && isBlobPreviewUrl(item.url)) {
+      URL.revokeObjectURL(item.url)
+    }
+  })
 }
 
 export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel, onSave }) {
@@ -57,8 +71,19 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const referenceImageItemsRef = useRef(form.referenceImageItems)
 
   const isPickup = form.orderType === 'pickup'
+
+  useEffect(() => {
+    referenceImageItemsRef.current = form.referenceImageItems
+  }, [form.referenceImageItems])
+
+  useEffect(() => {
+    return () => {
+      revokeBlobUrls(referenceImageItemsRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (initialOrder) {
@@ -79,7 +104,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
   }, [form.total, form.advancePaid])
 
   useEffect(() => {
-    if (!form.size) {
+    if (!form.size || form.size === 'custom') {
       return
     }
 
@@ -91,14 +116,6 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
       }))
     }
   }, [form.size])
-
-  useEffect(() => {
-    return () => {
-      if (isBlobPreviewUrl(form.referenceImagePreview)) {
-        URL.revokeObjectURL(form.referenceImagePreview)
-      }
-    }
-  }, [form.referenceImagePreview])
 
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -119,20 +136,36 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
   }
 
   function handleImageChange(event) {
-    const file = event.target.files?.[0]
+    const files = Array.from(event.target.files ?? [])
+    if (!files.length) return
 
-    if (!file) {
-      updateField('referenceImage', null)
-      updateField('referenceImagePreview', form.existingReferenceImages?.[0] ?? '')
-      return
-    }
+    const newItems = files.map((file) => ({
+      id: `new-${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2)}`,
+      source: 'new',
+      url: URL.createObjectURL(file),
+      file,
+      name: file.name,
+    }))
 
-    if (isBlobPreviewUrl(form.referenceImagePreview)) {
-      URL.revokeObjectURL(form.referenceImagePreview)
-    }
+    setForm((current) => ({
+      ...current,
+      referenceImageItems: [...current.referenceImageItems, ...newItems],
+    }))
+    event.target.value = ''
+  }
 
-    updateField('referenceImage', file)
-    updateField('referenceImagePreview', URL.createObjectURL(file))
+  function removeReferenceImage(id) {
+    setForm((current) => {
+      const item = current.referenceImageItems.find((entry) => entry.id === id)
+      if (item?.source === 'new' && isBlobPreviewUrl(item.url)) {
+        URL.revokeObjectURL(item.url)
+      }
+
+      return {
+        ...current,
+        referenceImageItems: current.referenceImageItems.filter((entry) => entry.id !== id),
+      }
+    })
   }
 
   function validate() {
@@ -150,6 +183,8 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
 
     if (!form.size) {
       nextErrors.size = 'Please select a cake size'
+    } else if (form.size === 'custom' && !form.customSize.trim()) {
+      nextErrors.customSize = 'Enter a custom size'
     }
 
     if (!form.orderType) {
@@ -183,6 +218,10 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
       nextErrors.advancePaid = 'Advance paid is required'
     }
 
+    if (!form.orderTakenBy.trim()) {
+      nextErrors.orderTakenBy = 'Order taken by is required'
+    }
+
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
@@ -197,14 +236,24 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     setIsSaving(true)
     setSubmitError(null)
     try {
-      let referenceImages = form.existingReferenceImages ?? []
-      let referenceImageName = form.existingReferenceImageName ?? null
+      const existingUrls = form.referenceImageItems
+        .filter((item) => item.source === 'existing')
+        .map((item) => item.url)
 
-      if (form.referenceImage) {
-        const uploaded = await uploadReferenceImage(form.referenceImage)
-        referenceImages = [uploaded.url]
-        referenceImageName = uploaded.filename
+      const newFiles = form.referenceImageItems
+        .filter((item) => item.source === 'new')
+        .map((item) => item.file)
+
+      let uploadedUrls = []
+      if (newFiles.length) {
+        const uploads = await uploadReferenceImages(newFiles)
+        uploadedUrls = uploads.map((upload) => upload.url)
       }
+
+      const referenceImages = [...existingUrls, ...uploadedUrls]
+      const referenceImageName = referenceImages.length
+        ? form.referenceImageItems[0]?.name ?? null
+        : null
 
       const order = {
         customerName: form.customerName.trim(),
@@ -212,7 +261,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
           form.flavor === 'custom'
             ? form.customFlavor.trim()
             : FLAVORS.find((item) => item.value === form.flavor)?.label ?? form.flavor,
-        size: form.size,
+        size: form.size === 'custom' ? form.customSize.trim() : form.size,
         orderType: form.orderType,
         pickupDate: isPickup ? form.pickupDate : '',
         pickupTime: isPickup ? form.pickupTime : '',
@@ -222,6 +271,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
         total: parseFloat(form.total),
         advancePaid: parseFloat(form.advancePaid),
         pending: parseFloat(pending),
+        orderTakenBy: form.orderTakenBy.trim(),
         greetings: form.greetings.trim(),
         modifications: form.modifications.trim(),
         referenceImageName,
@@ -237,9 +287,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
   }
 
   function handleReset() {
-    if (isBlobPreviewUrl(form.referenceImagePreview)) {
-      URL.revokeObjectURL(form.referenceImagePreview)
-    }
+    revokeBlobUrls(form.referenceImageItems)
 
     setForm(initialOrder ? orderToFormState(initialOrder) : initialFormState)
     setErrors({})
@@ -302,19 +350,30 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             </legend>
             <div className="radio-group size-group">
               {SIZES.map((size) => (
-                <label key={size} className="radio-option">
+                <label key={size.value} className="radio-option">
                   <input
                     type="radio"
                     name="size"
-                    value={size}
-                    checked={form.size === size}
+                    value={size.value}
+                    checked={form.size === size.value}
                     onChange={(event) => updateField('size', event.target.value)}
                   />
-                  <span>{size}</span>
+                  <span>{size.label}</span>
                 </label>
               ))}
             </div>
+            {form.size === 'custom' && (
+              <input
+                className="custom-flavor-input"
+                type="text"
+                value={form.customSize}
+                onChange={(event) => updateField('customSize', event.target.value)}
+                placeholder="e.g. 10 lb"
+                aria-invalid={Boolean(errors.customSize)}
+              />
+            )}
             {errors.size && <p className="error">{errors.size}</p>}
+            {errors.customSize && <p className="error">{errors.customSize}</p>}
           </fieldset>
 
           <fieldset className="field">
@@ -480,6 +539,21 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
           </div>
 
           <div className="field">
+            <label htmlFor="orderTakenBy">
+              Order Taken By <span className="required">*</span>
+            </label>
+            <input
+              id="orderTakenBy"
+              type="text"
+              value={form.orderTakenBy}
+              onChange={(event) => updateField('orderTakenBy', event.target.value)}
+              placeholder="Enter staff name"
+              aria-invalid={Boolean(errors.orderTakenBy)}
+            />
+            {errors.orderTakenBy && <p className="error">{errors.orderTakenBy}</p>}
+          </div>
+
+          <div className="field">
             <label htmlFor="greetings">
               Greetings <span className="optional-tag">(optional)</span>
             </label>
@@ -493,21 +567,35 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
           </div>
 
           <div className="field">
-            <label htmlFor="referenceImage">
-              Reference Image <span className="optional-tag">(optional)</span>
+            <label htmlFor="referenceImages">
+              Reference Images <span className="optional-tag">(optional)</span>
             </label>
             <input
-              id="referenceImage"
+              id="referenceImages"
               type="file"
               accept="image/*"
+              multiple
               onChange={handleImageChange}
             />
-            {form.referenceImagePreview && (
-              <div className="image-preview">
-                <img src={form.referenceImagePreview} alt="Reference preview" />
-                <p>{form.referenceImage?.name ?? form.existingReferenceImageName}</p>
+            {form.referenceImageItems.length ? (
+              <div className="image-preview-list">
+                {form.referenceImageItems.map((item) => (
+                  <div key={item.id} className="image-preview">
+                    <img src={item.url} alt={item.name} />
+                    <div className="image-preview-meta">
+                      <p>{item.name}</p>
+                      <button
+                        type="button"
+                        className="image-preview-remove"
+                        onClick={() => removeReferenceImage(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
+            ) : null}
           </div>
 
           <div className="field">

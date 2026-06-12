@@ -108,3 +108,23 @@
 .btn-create-order-link:hover {
   filter: brightness(1.08);
 }
+
+.btn-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fecaca;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: transparent;
+  color: #fecaca;
+  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
+}
+
+.btn-delete:hover {
+  background: rgba(185, 28, 28, 0.25);
+}

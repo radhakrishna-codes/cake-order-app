@@ -23,3 +23,7 @@ export async function uploadReferenceImage(file) {
 
   return response.json()
 }
+
+export async function uploadReferenceImages(files) {
+  return Promise.all(files.map((file) => uploadReferenceImage(file)))
+}

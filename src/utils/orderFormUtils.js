@@ -5,13 +5,31 @@ const FLAVOR_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ]
 
+const PRESET_SIZES = ['1 lb', '2 lb', '4 lb', '6 lb', '8 lb']
+
+function buildReferenceImageItems(order) {
+  const images = order.referenceImages ?? []
+  if (!images.length) return []
+
+  return images.map((url, index) => ({
+    id: `existing-${index}-${url}`,
+    source: 'existing',
+    url,
+    name:
+      index === 0 && order.referenceImageName
+        ? order.referenceImageName
+        : `Reference image ${index + 1}`,
+  }))
+}
+
 export function orderToFormState(order) {
   const matchedFlavor = FLAVOR_OPTIONS.find((item) => item.label === order.flavor)
-  const existingImageUrl = order.referenceImages?.[0] ?? ''
+  const isPresetSize = PRESET_SIZES.includes(order.size)
 
   const baseFields = {
     customerName: order.customerName,
-    size: order.size,
+    size: isPresetSize ? order.size : 'custom',
+    customSize: isPresetSize ? '' : order.size,
     orderType: order.orderType ?? 'pickup',
     pickupDate: order.pickupDate ?? '',
     pickupTime: order.pickupTime ?? '',
@@ -20,12 +38,10 @@ export function orderToFormState(order) {
     deliveryAddress: order.deliveryAddress ?? '',
     total: String(order.total),
     advancePaid: String(order.advancePaid),
+    orderTakenBy: order.orderTakenBy ?? '',
     greetings: order.greetings ?? '',
     modifications: order.modifications ?? '',
-    referenceImage: null,
-    referenceImagePreview: existingImageUrl,
-    existingReferenceImages: order.referenceImages ?? [],
-    existingReferenceImageName: order.referenceImageName ?? null,
+    referenceImageItems: buildReferenceImageItems(order),
   }
 
   if (matchedFlavor && matchedFlavor.value !== 'custom') {
@@ -43,4 +59,4 @@ export function orderToFormState(order) {
   }
 }
 
-export { FLAVOR_OPTIONS }
+export { FLAVOR_OPTIONS, PRESET_SIZES }
