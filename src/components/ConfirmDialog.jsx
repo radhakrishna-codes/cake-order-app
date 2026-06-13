@@ -4,11 +4,20 @@ export default function ConfirmDialog({
   title,
   message,
   confirmLabel = 'Yes, delete',
+  loadingLabel = 'Processing...',
   cancelLabel = 'Cancel',
+  confirmVariant = 'danger',
   onConfirm,
   onCancel,
   isLoading = false,
 }) {
+  const confirmClassName =
+    confirmVariant === 'success'
+      ? 'btn-success-confirm'
+      : confirmVariant === 'primary'
+        ? 'btn-primary-confirm'
+        : 'btn-delete-confirm'
+
   return (
     <div className="confirm-dialog-backdrop" role="presentation" onClick={onCancel}>
       <div
@@ -24,8 +33,13 @@ export default function ConfirmDialog({
           <button type="button" className="btn-secondary" onClick={onCancel} disabled={isLoading}>
             {cancelLabel}
           </button>
-          <button type="button" className="btn-delete-confirm" onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? 'Deleting...' : confirmLabel}
+          <button
+            type="button"
+            className={confirmClassName}
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

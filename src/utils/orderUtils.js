@@ -48,6 +48,14 @@ export function getOrderScheduleLabel(order) {
   return `${prefix}: ${formatPickupDateLabel(date)}`
 }
 
+export function isInProgressOrder(order) {
+  return (order.status ?? 'in_progress') !== 'completed'
+}
+
+export function isCompletedOrder(order) {
+  return order.status === 'completed'
+}
+
 export function groupOrdersByPickupDate(orders) {
   const groups = new Map()
 

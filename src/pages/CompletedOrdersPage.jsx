@@ -1,55 +1,38 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import logo from '../assets/rajaranilogo.png'
-import SuccessBanner from '../components/SuccessBanner'
 import { useOrders } from '../context/OrdersContext'
 import {
   formatCakeLabel,
   formatPickupTime,
   getOrderScheduleTime,
   groupOrdersByPickupDate,
-  isInProgressOrder,
+  isCompletedOrder,
 } from '../utils/orderUtils'
 import './HomePage.css'
 
-export default function HomePage() {
-  const location = useLocation()
-  const navigate = useNavigate()
+export default function CompletedOrdersPage() {
   const { orders, orderCounts, loading, error, refreshOrders } = useOrders()
-  const [successMessage, setSuccessMessage] = useState(null)
-  const activeOrders = orders.filter(isInProgressOrder)
-  const grouped = groupOrdersByPickupDate(activeOrders)
-
-  useEffect(() => {
-    const message = location.state?.successMessage
-    if (!message) return
-
-    setSuccessMessage(message)
-    navigate(location.pathname, { replace: true, state: null })
-  }, [location.pathname, location.state?.successMessage, navigate])
+  const completedOrders = orders.filter(isCompletedOrder)
+  const grouped = groupOrdersByPickupDate(completedOrders)
 
   return (
     <div className="home-page">
-      <SuccessBanner message={successMessage} onDismiss={() => setSuccessMessage(null)} />
       <header className="home-header">
         <div className="home-brand">
           <img src={logo} alt="Raja Rani Bakery & Restaurant" className="home-logo" />
           <div>
-            <h1>Cake Orders</h1>
-            <p className="home-subtitle">Pickup schedule by date</p>
+            <h1>Completed Cake Orders</h1>
+            <p className="home-subtitle">Finished orders by schedule date</p>
           </div>
         </div>
         <div className="home-header-actions">
-          <Link to="/completed" className="btn-completed-orders">
-            Completed Orders ({orderCounts.completed})
-          </Link>
-          <Link to="/orders/new" className="btn-create-order">
-            Create Cake Order
+          <Link to="/" className="btn-completed-orders">
+            Active Orders ({orderCounts.inProgress})
           </Link>
         </div>
       </header>
 
-      <section className="orders-list" aria-label="Cake orders by pickup date">
+      <section className="orders-list" aria-label="Completed cake orders by date">
         {loading ? (
           <p className="orders-empty">Loading orders...</p>
         ) : error ? (
@@ -60,7 +43,7 @@ export default function HomePage() {
             </button>
           </div>
         ) : grouped.length === 0 ? (
-          <p className="orders-empty">No cake orders yet. Create your first order.</p>
+          <p className="orders-empty">No completed orders yet.</p>
         ) : (
           grouped.map((group) => (
             <article key={group.pickupDate} className="pickup-group">
@@ -68,7 +51,7 @@ export default function HomePage() {
               <ol className="cake-items">
                 {group.items.map((order) => (
                   <li key={order.id}>
-                    <Link to={`/orders/${order.id}`} className="cake-item-button">
+                    <Link to={`/completed/orders/${order.id}`} className="cake-item-button">
                       <span className="cake-item-label">
                         {formatCakeLabel(order.flavor, order.size)}
                       </span>

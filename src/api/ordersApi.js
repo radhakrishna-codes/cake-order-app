@@ -20,6 +20,7 @@ function fromApiOrder(order) {
     modifications: order.modifications ?? '',
     referenceImageName: order.reference_image_name,
     referenceImages: order.reference_images ?? [],
+    status: order.status ?? 'in_progress',
     createdAt: order.created_at,
     updatedAt: order.updated_at,
   }
@@ -52,6 +53,14 @@ export async function listOrders() {
   return data.map(fromApiOrder)
 }
 
+export async function getOrderCounts() {
+  const data = await apiRequest('/api/orders/counts')
+  return {
+    inProgress: data.in_progress,
+    completed: data.completed,
+  }
+}
+
 export async function getOrder(orderId) {
   const data = await apiRequest(`/api/orders/${orderId}`)
   return fromApiOrder(data)
@@ -75,4 +84,14 @@ export async function updateOrder(orderId, order) {
 
 export async function deleteOrder(orderId) {
   await apiRequest(`/api/orders/${orderId}`, { method: 'DELETE' })
+}
+
+export async function completeOrder(orderId) {
+  const data = await apiRequest(`/api/orders/${orderId}/complete`, { method: 'POST' })
+  return fromApiOrder(data)
+}
+
+export async function reopenOrder(orderId) {
+  const data = await apiRequest(`/api/orders/${orderId}/reopen`, { method: 'POST' })
+  return fromApiOrder(data)
 }

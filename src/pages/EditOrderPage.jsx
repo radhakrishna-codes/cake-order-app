@@ -4,7 +4,7 @@ import CakeOrderForm from '../components/CakeOrderForm'
 import ConfirmDialog from '../components/ConfirmDialog'
 import PageLayout from '../components/PageLayout'
 import { useOrders } from '../context/OrdersContext'
-import { formatCakeLabel } from '../utils/orderUtils'
+import { formatCakeLabel, isCompletedOrder } from '../utils/orderUtils'
 import './EditOrderPage.css'
 
 export default function EditOrderPage() {
@@ -90,6 +90,10 @@ export default function EditOrderPage() {
     return <Navigate to="/" replace />
   }
 
+  if (isCompletedOrder(order)) {
+    return <Navigate to={`/completed/orders/${order.id}`} replace />
+  }
+
   return (
     <>
       <PageLayout
@@ -121,6 +125,7 @@ export default function EditOrderPage() {
           title="Delete this order?"
           message={`Are you sure you want to remove ${order.customerName}'s cake order? This action cannot be undone.`}
           confirmLabel="Yes, delete"
+          loadingLabel="Deleting..."
           onConfirm={handleConfirmDelete}
           onCancel={() => {
             if (!isDeleting) setShowDeleteConfirm(false)

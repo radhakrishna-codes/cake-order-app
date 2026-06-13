@@ -71,3 +71,43 @@
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+.btn-success-confirm {
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #16a34a;
+  color: #fff;
+}
+
+.btn-success-confirm:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.btn-success-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-primary-confirm {
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--rr-gold) 0%, var(--rr-gold-dark) 100%);
+  color: var(--rr-black);
+}
+
+.btn-primary-confirm:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.btn-primary-confirm:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
