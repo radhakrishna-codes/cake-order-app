@@ -295,7 +295,7 @@ export default function OrderDetailPage({ completedView = false }) {
         <ConfirmDialog
           title="Delete this order?"
           message={`Are you sure you want to delete ${order.customerName}'s order?`}
-          confirmLabel="Yes"
+          confirmLabel="Delete"
           loadingLabel="Deleting..."
           confirmVariant="danger"
           onConfirm={handleConfirmDelete}
