@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logo from '../assets/rajaranilogo.png'
 import OrderPreparationStatusBadge from '../components/OrderPreparationStatusBadge'
@@ -8,11 +8,9 @@ import {
   formatCakeLabel,
   formatPickupTime,
   getDisplayPreparationStatus,
-  getHomeStatusFilterCounts,
   getOrderScheduleTime,
   groupOrdersByPickupDate,
   HOME_STATUS_FILTERS,
-  matchesHomeStatusFilter,
 } from '../utils/orderUtils'
 import './HomePage.css'
 
@@ -45,18 +43,23 @@ const EMPTY_STATES = {
 export default function HomePage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { orders, loading, error, refreshOrders } = useOrders()
+  const { orders, filterCounts, loading, error, refreshOrders } = useOrders()
   const [successMessage, setSuccessMessage] = useState(null)
   const [activeFilter, setActiveFilter] = useState(HOME_STATUS_FILTERS.all)
 
-  const filterCounts = useMemo(() => getHomeStatusFilterCounts(orders), [orders])
+  useEffect(() => {
+    refreshOrders({ statusFilter: activeFilter })
+  }, [activeFilter, refreshOrders])
 
-  const filteredOrders = useMemo(
-    () => orders.filter((order) => matchesHomeStatusFilter(order, activeFilter)),
-    [orders, activeFilter],
-  )
+  const grouped = groupOrdersByPickupDate(orders)
 
-  const grouped = groupOrdersByPickupDate(filteredOrders)
+  function handleFilterSelect(filterId) {
+    if (activeFilter === filterId) {
+      refreshOrders({ statusFilter: filterId })
+      return
+    }
+    setActiveFilter(filterId)
+  }
 
   useEffect(() => {
     const message = location.state?.successMessage
@@ -91,7 +94,7 @@ export default function HomePage() {
             type="button"
             className={`home-status-filter ${activeFilter === tab.id ? 'is-active' : ''}`}
             aria-pressed={activeFilter === tab.id}
-            onClick={() => setActiveFilter(tab.id)}
+            onClick={() => handleFilterSelect(tab.id)}
           >
             <span className="home-status-filter-label">{tab.label}</span>
             <span className="home-status-filter-count">{filterCounts[tab.id]}</span>
@@ -105,7 +108,7 @@ export default function HomePage() {
         ) : error ? (
           <div className="orders-empty orders-error">
             <p>{error}</p>
-            <button type="button" className="btn-retry" onClick={refreshOrders}>
+            <button type="button" className="btn-retry" onClick={() => refreshOrders({ statusFilter: activeFilter })}>
               Try again
             </button>
           </div>

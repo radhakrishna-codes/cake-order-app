@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import { normalizePreparationStatus } from '../utils/orderUtils'
+import { HOME_STATUS_FILTERS, normalizePreparationStatus } from '../utils/orderUtils'
 
 function fromApiOrder(order) {
   return {
@@ -49,9 +49,22 @@ function toApiOrder(order) {
   }
 }
 
-export async function listOrders() {
-  const data = await apiRequest('/api/orders')
-  return data.map(fromApiOrder)
+function fromApiStatusCounts(counts) {
+  return {
+    [HOME_STATUS_FILTERS.all]: counts.all,
+    [HOME_STATUS_FILTERS.inProgress]: counts.in_progress,
+    [HOME_STATUS_FILTERS.ready]: counts.ready,
+    [HOME_STATUS_FILTERS.completed]: counts.completed,
+  }
+}
+
+export async function listOrders({ statusFilter = HOME_STATUS_FILTERS.all } = {}) {
+  const params = new URLSearchParams({ status_filter: statusFilter })
+  const data = await apiRequest(`/api/orders?${params}`)
+  return {
+    orders: data.orders.map(fromApiOrder),
+    counts: fromApiStatusCounts(data.counts),
+  }
 }
 
 export async function getOrder(orderId) {

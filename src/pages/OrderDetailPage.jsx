@@ -11,6 +11,7 @@ import {
   formatPickupDateLabel,
   formatPickupTime,
   getDisplayPreparationStatus,
+  HOME_STATUS_FILTERS,
   isCompletedOrder,
 } from '../utils/orderUtils'
 import './OrderDetailPage.css'
@@ -18,16 +19,9 @@ import './OrderDetailPage.css'
 export default function OrderDetailPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
-  const {
-    getOrderById,
-    fetchOrderById,
-    deleteOrder,
-    updatePreparationStatus,
-    refreshOrders,
-    loading: ordersLoading,
-  } = useOrders()
-  const [order, setOrder] = useState(() => getOrderById(orderId))
-  const [loading, setLoading] = useState(!order)
+  const { fetchOrderById, deleteOrder, updatePreparationStatus, refreshOrders } = useOrders()
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -49,23 +43,9 @@ export default function OrderDetailPage() {
   }, [orderId])
 
   useEffect(() => {
-    const cached = getOrderById(orderId)
-    if (cached) setOrder(cached)
-  }, [orderId, getOrderById])
-
-  useEffect(() => {
     let cancelled = false
 
     async function loadOrder() {
-      const cached = getOrderById(orderId)
-      if (cached) {
-        setOrder(cached)
-        setLoading(false)
-        return
-      }
-
-      if (ordersLoading) return
-
       setLoading(true)
       setError(null)
       try {
@@ -85,7 +65,7 @@ export default function OrderDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [orderId, getOrderById, fetchOrderById, ordersLoading])
+  }, [orderId, fetchOrderById])
 
   async function handleConfirmDelete() {
     setIsDeleting(true)
@@ -95,7 +75,7 @@ export default function OrderDetailPage() {
       isLeavingRef.current = true
       setShowDeleteConfirm(false)
       navigate('/', { replace: true })
-      refreshOrders({ silent: true })
+      refreshOrders({ silent: true, statusFilter: HOME_STATUS_FILTERS.all })
     } catch (err) {
       setActionError(err.message ?? 'Failed to delete order')
       setIsDeleting(false)
@@ -116,7 +96,7 @@ export default function OrderDetailPage() {
             successMessage: `${order.customerName}'s order has been marked as completed`,
           },
         })
-        refreshOrders({ silent: true })
+        refreshOrders({ silent: true, statusFilter: HOME_STATUS_FILTERS.all })
       }
     } catch (err) {
       setActionError(err.message ?? 'Failed to update status')
@@ -126,7 +106,7 @@ export default function OrderDetailPage() {
 
   const isActionInProgress = isDeleting
 
-  if ((loading || ordersLoading) && !isActionInProgress) {
+  if (loading && !isActionInProgress) {
     return (
       <PageLayout title="Cake Order Details" backTo="/">
         <p className="page-message">Loading order...</p>

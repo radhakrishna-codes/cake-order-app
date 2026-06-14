@@ -1,21 +1,31 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import * as ordersApi from '../api/ordersApi'
+import { HOME_STATUS_FILTERS } from '../utils/orderUtils'
+
+const EMPTY_FILTER_COUNTS = {
+  [HOME_STATUS_FILTERS.all]: 0,
+  [HOME_STATUS_FILTERS.inProgress]: 0,
+  [HOME_STATUS_FILTERS.ready]: 0,
+  [HOME_STATUS_FILTERS.completed]: 0,
+}
 
 const OrdersContext = createContext(null)
 
 export function OrdersProvider({ children }) {
   const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [filterCounts, setFilterCounts] = useState(EMPTY_FILTER_COUNTS)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const refreshOrders = useCallback(async ({ silent = false } = {}) => {
+  const refreshOrders = useCallback(async ({ silent = false, statusFilter = HOME_STATUS_FILTERS.all } = {}) => {
     if (!silent) {
       setLoading(true)
       setError(null)
     }
     try {
-      const data = await ordersApi.listOrders()
-      setOrders(data)
+      const data = await ordersApi.listOrders({ statusFilter })
+      setOrders(data.orders)
+      setFilterCounts(data.counts)
     } catch (err) {
       if (!silent) {
         setError(err.message ?? 'Failed to load orders')
@@ -26,10 +36,6 @@ export function OrdersProvider({ children }) {
       }
     }
   }, [])
-
-  useEffect(() => {
-    refreshOrders()
-  }, [refreshOrders])
 
   const addOrder = useCallback(async (orderData) => {
     const created = await ordersApi.createOrder(orderData)
@@ -55,9 +61,6 @@ export function OrdersProvider({ children }) {
   }, [])
 
   const fetchOrderById = useCallback(async (id) => {
-    const cached = orders.find((order) => order.id === id)
-    if (cached) return cached
-
     const fetched = await ordersApi.getOrder(id)
     setOrders((current) => {
       const exists = current.some((order) => order.id === id)
@@ -66,16 +69,12 @@ export function OrdersProvider({ children }) {
         : [...current, fetched]
     })
     return fetched
-  }, [orders])
-
-  const getOrderById = useCallback(
-    (id) => orders.find((order) => order.id === id) ?? null,
-    [orders],
-  )
+  }, [])
 
   const value = useMemo(
     () => ({
       orders,
+      filterCounts,
       loading,
       error,
       refreshOrders,
@@ -84,10 +83,10 @@ export function OrdersProvider({ children }) {
       deleteOrder,
       updatePreparationStatus,
       fetchOrderById,
-      getOrderById,
     }),
     [
       orders,
+      filterCounts,
       loading,
       error,
       refreshOrders,
@@ -96,7 +95,6 @@ export function OrdersProvider({ children }) {
       deleteOrder,
       updatePreparationStatus,
       fetchOrderById,
-      getOrderById,
     ],
   )
 

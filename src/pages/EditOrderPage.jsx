@@ -8,24 +8,15 @@ import { formatCakeLabel, isCompletedOrder } from '../utils/orderUtils'
 export default function EditOrderPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
-  const { getOrderById, fetchOrderById, updateOrder, loading: ordersLoading } = useOrders()
-  const [order, setOrder] = useState(() => getOrderById(orderId))
-  const [loading, setLoading] = useState(!order)
+  const { fetchOrderById, updateOrder } = useOrders()
+  const [order, setOrder] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
 
     async function loadOrder() {
-      const cached = getOrderById(orderId)
-      if (cached) {
-        setOrder(cached)
-        setLoading(false)
-        return
-      }
-
-      if (ordersLoading) return
-
       setLoading(true)
       setError(null)
       try {
@@ -45,14 +36,14 @@ export default function EditOrderPage() {
     return () => {
       cancelled = true
     }
-  }, [orderId, getOrderById, fetchOrderById, ordersLoading])
+  }, [orderId, fetchOrderById])
 
   async function handleSave(orderData) {
     await updateOrder(order.id, orderData)
     navigate('/')
   }
 
-  if (loading || ordersLoading) {
+  if (loading) {
     return (
       <PageLayout title="Edit Cake Order" backTo="/">
         <p className="page-message">Loading order...</p>
