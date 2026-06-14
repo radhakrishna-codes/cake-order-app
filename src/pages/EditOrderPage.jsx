@@ -73,7 +73,7 @@ export default function EditOrderPage() {
   }
 
   if (isCompletedOrder(order)) {
-    return <Navigate to={`/completed/orders/${order.id}`} replace />
+    return <Navigate to={`/orders/${order.id}`} replace />
   }
 
   return (

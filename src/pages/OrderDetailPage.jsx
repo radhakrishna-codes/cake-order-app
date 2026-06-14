@@ -1,20 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import ConfirmDialog from '../components/ConfirmDialog'
+import OrderPreparationStatusBadge from '../components/OrderPreparationStatusBadge'
+import OrderPreparationStatusSelect from '../components/OrderPreparationStatusSelect'
 import PageLayout from '../components/PageLayout'
+import ReferenceImageLightbox from '../components/ReferenceImageLightbox'
 import { useOrders } from '../context/OrdersContext'
-import { formatCakeLabel, formatPickupDateLabel, formatPickupTime, isCompletedOrder } from '../utils/orderUtils'
+import {
+  formatCakeLabel,
+  formatPickupDateLabel,
+  formatPickupTime,
+  getDisplayPreparationStatus,
+  isCompletedOrder,
+} from '../utils/orderUtils'
 import './OrderDetailPage.css'
 
-export default function OrderDetailPage({ completedView = false }) {
+export default function OrderDetailPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const {
     getOrderById,
     fetchOrderById,
     deleteOrder,
-    completeOrder,
-    reopenOrder,
+    updatePreparationStatus,
     refreshOrders,
     loading: ordersLoading,
   } = useOrders()
@@ -22,17 +30,28 @@ export default function OrderDetailPage({ completedView = false }) {
   const [loading, setLoading] = useState(!order)
   const [error, setError] = useState(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
-  const [showReopenConfirm, setShowReopenConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isCompleting, setIsCompleting] = useState(false)
-  const [isReopening, setIsReopening] = useState(false)
   const [actionError, setActionError] = useState(null)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
   const isLeavingRef = useRef(false)
+
+  const lightboxImages = useMemo(
+    () =>
+      (order?.referenceImages ?? []).map((src, index) => ({
+        src,
+        alt: `Reference cake ${index + 1}`,
+      })),
+    [order?.referenceImages],
+  )
 
   useEffect(() => {
     isLeavingRef.current = false
   }, [orderId])
+
+  useEffect(() => {
+    const cached = getOrderById(orderId)
+    if (cached) setOrder(cached)
+  }, [orderId, getOrderById])
 
   useEffect(() => {
     let cancelled = false
@@ -83,54 +102,33 @@ export default function OrderDetailPage({ completedView = false }) {
     }
   }
 
-  async function handleConfirmComplete() {
-    const customerName = order.customerName
-    setIsCompleting(true)
+  async function handlePreparationStatusChange(nextStatus) {
     setActionError(null)
+
     try {
-      await completeOrder(order.id)
-      isLeavingRef.current = true
-      setShowCompleteConfirm(false)
-      navigate('/', {
-        replace: true,
-        state: {
-          successMessage: `${customerName}'s order has been moved to completed order list`,
-        },
-      })
-      refreshOrders({ silent: true })
+      const updated = await updatePreparationStatus(order.id, nextStatus)
+      setOrder(updated)
+
+      if (nextStatus === 'completed') {
+        navigate('/', {
+          replace: true,
+          state: {
+            successMessage: `${order.customerName}'s order has been marked as completed`,
+          },
+        })
+        refreshOrders({ silent: true })
+      }
     } catch (err) {
-      setActionError(err.message ?? 'Failed to complete order')
-      setIsCompleting(false)
+      setActionError(err.message ?? 'Failed to update status')
+      throw err
     }
   }
 
-  async function handleConfirmReopen() {
-    const customerName = order.customerName
-    setIsReopening(true)
-    setActionError(null)
-    try {
-      await reopenOrder(order.id)
-      isLeavingRef.current = true
-      setShowReopenConfirm(false)
-      navigate('/', {
-        replace: true,
-        state: {
-          successMessage: `${customerName}'s order has been reopened`,
-        },
-      })
-      refreshOrders({ silent: true })
-    } catch (err) {
-      setActionError(err.message ?? 'Failed to reopen order')
-      setIsReopening(false)
-    }
-  }
-
-  const isActionInProgress = isDeleting || isCompleting || isReopening
-  const backTo = completedView ? '/completed' : '/'
+  const isActionInProgress = isDeleting
 
   if ((loading || ordersLoading) && !isActionInProgress) {
     return (
-      <PageLayout title="Cake Order Details" backTo={backTo}>
+      <PageLayout title="Cake Order Details" backTo="/">
         <p className="page-message">Loading order...</p>
       </PageLayout>
     )
@@ -138,26 +136,18 @@ export default function OrderDetailPage({ completedView = false }) {
 
   if (error) {
     return (
-      <PageLayout title="Cake Order Details" backTo={backTo}>
+      <PageLayout title="Cake Order Details" backTo="/">
         <p className="page-message page-message-error">{error}</p>
       </PageLayout>
     )
   }
 
   if (!order) {
-    return <Navigate to={backTo} replace />
+    return <Navigate to="/" replace />
   }
 
+  const displayStatus = getDisplayPreparationStatus(order)
   const orderIsCompleted = isCompletedOrder(order)
-
-  if (completedView && !orderIsCompleted && !isReopening && !isLeavingRef.current) {
-    return <Navigate to={`/orders/${order.id}`} replace />
-  }
-
-  if (!completedView && orderIsCompleted && !isCompleting && !isLeavingRef.current) {
-    return <Navigate to={`/completed/orders/${order.id}`} replace />
-  }
-
   const imageSources = order.referenceImages ?? []
 
   return (
@@ -165,37 +155,29 @@ export default function OrderDetailPage({ completedView = false }) {
       <PageLayout
         title="Cake Order Details"
         subtitle={formatCakeLabel(order.flavor, order.size)}
-        backTo={backTo}
+        backTo="/"
         actions={
-          completedView ? (
-            <button
-              type="button"
-              className="btn-reopen"
-              onClick={() => setShowReopenConfirm(true)}
-            >
-              Reopen
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="btn-complete"
-                onClick={() => setShowCompleteConfirm(true)}
-              >
-                Complete
-              </button>
-              <button
-                type="button"
-                className="btn-delete"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                Delete
-              </button>
-              <Link to={`/orders/${order.id}/edit`} className="btn-edit">
-                Edit Order
-              </Link>
-            </>
-          )
+          <>
+            <OrderPreparationStatusSelect
+              orderType={order.orderType}
+              value={displayStatus}
+              onChange={handlePreparationStatusChange}
+            />
+            {!orderIsCompleted ? (
+              <>
+                <button
+                  type="button"
+                  className="btn-delete"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete
+                </button>
+                <Link to={`/orders/${order.id}/edit`} className="btn-edit">
+                  Edit Order
+                </Link>
+              </>
+            ) : null}
+          </>
         }
       >
         {actionError ? <p className="detail-delete-error">{actionError}</p> : null}
@@ -204,6 +186,12 @@ export default function OrderDetailPage({ completedView = false }) {
             <div>
               <dt>Customer</dt>
               <dd>{order.customerName}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <OrderPreparationStatusBadge status={displayStatus} />
+              </dd>
             </div>
             <div>
               <dt>Flavor</dt>
@@ -263,22 +251,31 @@ export default function OrderDetailPage({ completedView = false }) {
             ) : null}
             {order.modifications ? (
               <div className="detail-full">
-                <dt>Modifications</dt>
+                <dt>Instructions</dt>
                 <dd>{order.modifications}</dd>
               </div>
             ) : null}
             {imageSources.length ? (
               <div className="detail-full detail-reference-images">
                 <dt>Reference Images</dt>
-                <dd className="reference-image-list">
-                  {imageSources.map((src, index) => (
-                    <img
-                      key={`${src}-${index}`}
-                      src={src}
-                      alt={`Reference cake ${index + 1}`}
-                      className="reference-image"
-                    />
-                  ))}
+                <dd>
+                  <div className="reference-image-list">
+                    {imageSources.map((src, index) => (
+                      <button
+                        key={`${src}-${index}`}
+                        type="button"
+                        className="reference-image-button"
+                        onClick={() => setLightboxIndex(index)}
+                        aria-label={`View reference cake ${index + 1}`}
+                      >
+                        <img
+                          src={src}
+                          alt={`Reference cake ${index + 1}`}
+                          className="reference-image"
+                        />
+                      </button>
+                    ))}
+                  </div>
                 </dd>
               </div>
             ) : order.referenceImageName ? (
@@ -290,6 +287,12 @@ export default function OrderDetailPage({ completedView = false }) {
           </dl>
         </section>
       </PageLayout>
+
+      <ReferenceImageLightbox
+        images={lightboxImages}
+        openIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+      />
 
       {showDeleteConfirm ? (
         <ConfirmDialog
@@ -303,36 +306,6 @@ export default function OrderDetailPage({ completedView = false }) {
             if (!isDeleting) setShowDeleteConfirm(false)
           }}
           isLoading={isDeleting}
-        />
-      ) : null}
-
-      {showCompleteConfirm ? (
-        <ConfirmDialog
-          title="Mark order completed?"
-          message={`Are you sure ${order.customerName}'s order is completed?`}
-          confirmLabel="Complete"
-          loadingLabel="Completing..."
-          confirmVariant="success"
-          onConfirm={handleConfirmComplete}
-          onCancel={() => {
-            if (!isCompleting) setShowCompleteConfirm(false)
-          }}
-          isLoading={isCompleting}
-        />
-      ) : null}
-
-      {showReopenConfirm ? (
-        <ConfirmDialog
-          title="Reopen this order?"
-          message={`Are you sure you want to reopen ${order.customerName}'s order?`}
-          confirmLabel="Reopen"
-          loadingLabel="Reopening..."
-          confirmVariant="primary"
-          onConfirm={handleConfirmReopen}
-          onCancel={() => {
-            if (!isReopening) setShowReopenConfirm(false)
-          }}
-          isLoading={isReopening}
         />
       ) : null}
     </>

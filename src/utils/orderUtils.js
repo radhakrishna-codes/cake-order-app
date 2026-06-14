@@ -48,12 +48,97 @@ export function getOrderScheduleLabel(order) {
   return `${prefix}: ${formatPickupDateLabel(date)}`
 }
 
-export function isInProgressOrder(order) {
-  return (order.status ?? 'in_progress') !== 'completed'
+export const PREPARATION_STATUS_LABELS = {
+  in_progress: 'In progress',
+  ready_for_pickup: 'Ready for pick up',
+  ready_for_delivery: 'Ready for delivery',
+  completed: 'Completed',
+}
+
+export function normalizePreparationStatus(status) {
+  if (!status || status === 'not_yet_started') return 'in_progress'
+  return status
+}
+
+export function getDisplayPreparationStatus(order) {
+  return normalizePreparationStatus(order?.preparationStatus)
 }
 
 export function isCompletedOrder(order) {
-  return order.status === 'completed'
+  return getDisplayPreparationStatus(order) === 'completed'
+}
+
+export function getPreparationStatusLabel(status) {
+  const normalized = normalizePreparationStatus(status)
+  return PREPARATION_STATUS_LABELS[normalized] ?? PREPARATION_STATUS_LABELS.in_progress
+}
+
+export function getPreparationStatusOptions(orderType) {
+  const readyOption =
+    orderType === 'delivery'
+      ? { value: 'ready_for_delivery', label: PREPARATION_STATUS_LABELS.ready_for_delivery }
+      : { value: 'ready_for_pickup', label: PREPARATION_STATUS_LABELS.ready_for_pickup }
+
+  return [
+    { value: 'in_progress', label: PREPARATION_STATUS_LABELS.in_progress },
+    readyOption,
+    { value: 'completed', label: PREPARATION_STATUS_LABELS.completed },
+  ]
+}
+
+export function getPreparationStatusBadgeClass(status) {
+  const normalized = normalizePreparationStatus(status)
+  switch (normalized) {
+    case 'in_progress':
+      return 'status-badge-in-progress'
+    case 'ready_for_pickup':
+    case 'ready_for_delivery':
+      return 'status-badge-ready'
+    case 'completed':
+      return 'status-badge-completed'
+    default:
+      return 'status-badge-in-progress'
+  }
+}
+
+export const HOME_STATUS_FILTERS = {
+  all: 'all',
+  inProgress: 'in_progress',
+  ready: 'ready',
+  completed: 'completed',
+}
+
+export function matchesHomeStatusFilter(order, filter) {
+  const prepStatus = getDisplayPreparationStatus(order)
+
+  switch (filter) {
+    case HOME_STATUS_FILTERS.completed:
+      return prepStatus === 'completed'
+    case HOME_STATUS_FILTERS.inProgress:
+      return prepStatus === 'in_progress'
+    case HOME_STATUS_FILTERS.ready:
+      return prepStatus === 'ready_for_pickup' || prepStatus === 'ready_for_delivery'
+    case HOME_STATUS_FILTERS.all:
+    default:
+      return true
+  }
+}
+
+export function getHomeStatusFilterCounts(orders) {
+  return {
+    [HOME_STATUS_FILTERS.all]: orders.filter((order) =>
+      matchesHomeStatusFilter(order, HOME_STATUS_FILTERS.all),
+    ).length,
+    [HOME_STATUS_FILTERS.inProgress]: orders.filter((order) =>
+      matchesHomeStatusFilter(order, HOME_STATUS_FILTERS.inProgress),
+    ).length,
+    [HOME_STATUS_FILTERS.ready]: orders.filter((order) =>
+      matchesHomeStatusFilter(order, HOME_STATUS_FILTERS.ready),
+    ).length,
+    [HOME_STATUS_FILTERS.completed]: orders.filter((order) =>
+      matchesHomeStatusFilter(order, HOME_STATUS_FILTERS.completed),
+    ).length,
+  }
 }
 
 export function groupOrdersByPickupDate(orders) {

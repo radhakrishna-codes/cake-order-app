@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { uploadReferenceImages } from '../api/uploadsApi'
+import ConfirmDialog from './ConfirmDialog'
+import ReferenceImageLightbox from './ReferenceImageLightbox'
 import { orderToFormState } from '../utils/orderFormUtils'
 import './CakeOrderForm.css'
 
@@ -71,6 +73,8 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
   const [errors, setErrors] = useState({})
   const [isSaving, setIsSaving] = useState(false)
   const [submitError, setSubmitError] = useState(null)
+  const [lightboxIndex, setLightboxIndex] = useState(null)
+  const [imagePendingDelete, setImagePendingDelete] = useState(null)
   const referenceImageItemsRef = useRef(form.referenceImageItems)
 
   const isPickup = form.orderType === 'pickup'
@@ -102,6 +106,15 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
 
     return Math.max(total - advance, 0).toFixed(2)
   }, [form.total, form.advancePaid])
+
+  const lightboxImages = useMemo(
+    () =>
+      form.referenceImageItems.map((item) => ({
+        src: item.url,
+        alt: item.name,
+      })),
+    [form.referenceImageItems],
+  )
 
   useEffect(() => {
     if (!form.size || form.size === 'custom') {
@@ -166,6 +179,14 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
         referenceImageItems: current.referenceImageItems.filter((entry) => entry.id !== id),
       }
     })
+    setLightboxIndex(null)
+    setImagePendingDelete(null)
+  }
+
+  function handleConfirmRemoveImage() {
+    if (imagePendingDelete) {
+      removeReferenceImage(imagePendingDelete.id)
+    }
   }
 
   function validate() {
@@ -579,28 +600,56 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             />
             {form.referenceImageItems.length ? (
               <div className="image-preview-list">
-                {form.referenceImageItems.map((item) => (
+                {form.referenceImageItems.map((item, index) => (
                   <div key={item.id} className="image-preview">
-                    <img src={item.url} alt={item.name} />
-                    <div className="image-preview-meta">
-                      <p>{item.name}</p>
+                    <div className="image-preview-toolbar">
+                      <span className="image-preview-name" title={item.name}>
+                        {item.name}
+                      </span>
                       <button
                         type="button"
-                        className="image-preview-remove"
-                        onClick={() => removeReferenceImage(item.id)}
+                        className="image-preview-delete"
+                        onClick={() =>
+                          setImagePendingDelete({ id: item.id, name: item.name })
+                        }
+                        aria-label={`Remove ${item.name}`}
                       >
-                        Remove
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="18"
+                          height="18"
+                          aria-hidden="true"
+                          focusable="false"
+                        >
+                          <path
+                            fill="currentColor"
+                            d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                          />
+                        </svg>
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      className="image-preview-image-button"
+                      onClick={() => setLightboxIndex(index)}
+                      aria-label={`View ${item.name}`}
+                    >
+                      <img src={item.url} alt={item.name} />
+                    </button>
                   </div>
                 ))}
               </div>
             ) : null}
+            <ReferenceImageLightbox
+              images={lightboxImages}
+              openIndex={lightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+            />
           </div>
 
           <div className="field">
             <label htmlFor="modifications">
-              Modifications <span className="optional-tag">(optional)</span>
+              Instructions <span className="optional-tag">(optional)</span>
             </label>
             <textarea
               id="modifications"
@@ -628,6 +677,17 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
           </button>
         </div>
       </form>
+
+      {imagePendingDelete ? (
+        <ConfirmDialog
+          title="Remove this image?"
+          message={`Are you sure you want to remove "${imagePendingDelete.name}"?`}
+          confirmLabel="Remove"
+          confirmVariant="danger"
+          onConfirm={handleConfirmRemoveImage}
+          onCancel={() => setImagePendingDelete(null)}
+        />
+      ) : null}
     </div>
   )
 }
