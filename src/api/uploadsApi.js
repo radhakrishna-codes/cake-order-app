@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { resolveAssetUrl } from './client'
 
 export async function uploadReferenceImage(file) {
   const formData = new FormData()
@@ -21,7 +21,11 @@ export async function uploadReferenceImage(file) {
     throw new Error(message)
   }
 
-  return response.json()
+  const data = await response.json()
+  return {
+    ...data,
+    url: resolveAssetUrl(data.url),
+  }
 }
 
 export async function uploadReferenceImages(files) {

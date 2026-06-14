@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
+export const API_BASE = import.meta.env.VITE_API_URL ?? ''
+
+export function resolveAssetUrl(path) {
+  if (!path || /^https?:\/\//i.test(path)) return path
+  return `${API_BASE}${path}`
+}
 
 export class ApiError extends Error {
   constructor(message, status) {

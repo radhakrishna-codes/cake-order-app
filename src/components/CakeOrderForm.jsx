@@ -3,6 +3,7 @@ import { uploadReferenceImages } from '../api/uploadsApi'
 import ConfirmDialog from './ConfirmDialog'
 import ReferenceImageLightbox from './ReferenceImageLightbox'
 import { orderToFormState } from '../utils/orderFormUtils'
+import { formatCurrency } from '../utils/orderUtils'
 import './CakeOrderForm.css'
 
 const FLAVORS = [
@@ -521,7 +522,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
                 step="0.01"
                 value={form.total}
                 onChange={(event) => updateField('total', event.target.value)}
-                placeholder="0.00"
+                placeholder="$0.00"
                 aria-invalid={Boolean(errors.total)}
               />
               {errors.total && <p className="error">{errors.total}</p>}
@@ -538,7 +539,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
                 step="0.01"
                 value={form.advancePaid}
                 onChange={(event) => updateField('advancePaid', event.target.value)}
-                placeholder="0.00"
+                placeholder="$0.00"
                 aria-invalid={Boolean(errors.advancePaid)}
               />
               {errors.advancePaid && <p className="error">{errors.advancePaid}</p>}
@@ -551,7 +552,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
               <input
                 id="pending"
                 type="text"
-                value={pending || ''}
+                value={pending ? formatCurrency(pending) : ''}
                 readOnly
                 className="readonly-field"
                 placeholder="Auto-calculated"

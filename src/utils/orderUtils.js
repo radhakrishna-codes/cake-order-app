@@ -34,6 +34,12 @@ export function formatPickupTime(time24) {
   return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`
 }
 
+export function formatCurrency(amount) {
+  const value = Number(amount)
+  if (Number.isNaN(value)) return '$0.00'
+  return `$${value.toFixed(2)}`
+}
+
 export function getOrderScheduleDate(order) {
   return order.orderType === 'delivery' ? order.deliveryDate : order.pickupDate
 }

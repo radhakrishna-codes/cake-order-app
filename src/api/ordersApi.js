@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest, resolveAssetUrl } from './client'
 import { HOME_STATUS_FILTERS, normalizePreparationStatus } from '../utils/orderUtils'
 
 function fromApiOrder(order) {
@@ -20,7 +20,7 @@ function fromApiOrder(order) {
     greetings: order.greetings ?? '',
     modifications: order.modifications ?? '',
     referenceImageName: order.reference_image_name,
-    referenceImages: order.reference_images ?? [],
+    referenceImages: (order.reference_images ?? []).map(resolveAssetUrl),
     preparationStatus: normalizePreparationStatus(order.preparation_status),
     createdAt: order.created_at,
     updatedAt: order.updated_at,

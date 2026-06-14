@@ -8,6 +8,7 @@ import ReferenceImageLightbox from '../components/ReferenceImageLightbox'
 import { useOrders } from '../context/OrdersContext'
 import {
   formatCakeLabel,
+  formatCurrency,
   formatPickupDateLabel,
   formatPickupTime,
   getDisplayPreparationStatus,
@@ -209,15 +210,15 @@ export default function OrderDetailPage() {
             )}
             <div>
               <dt>Total</dt>
-              <dd>₹{order.total.toFixed(2)}</dd>
+              <dd>{formatCurrency(order.total)}</dd>
             </div>
             <div>
               <dt>Advance Paid</dt>
-              <dd>₹{order.advancePaid.toFixed(2)}</dd>
+              <dd>{formatCurrency(order.advancePaid)}</dd>
             </div>
             <div>
               <dt>Pending</dt>
-              <dd>₹{order.pending.toFixed(2)}</dd>
+              <dd>{formatCurrency(order.pending)}</dd>
             </div>
             <div>
               <dt>Order Taken By</dt>
