@@ -1,0 +1,21 @@
+{
+  "name": "RajaRani Bakery",
+  "short_name": "RajaRani",
+  "description": "Cake order management for pickup and delivery",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fff8e7",
+  "theme_color": "#383333",
+  "icons": [
+    {
+      "src": "./favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./apple-touch-icon.png",
+  ]
+}

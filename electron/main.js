@@ -11,7 +11,7 @@ function createWindow() {
     height: 900,
     minWidth: 360,
     minHeight: 640,
-    title: 'Cake Order Manager',
+    title: 'RajaRani Bakery',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

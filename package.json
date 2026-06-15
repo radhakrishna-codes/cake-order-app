@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "vite",
     "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5174 && electron .\"",
-    "build": "vite build",
+    "build": "node scripts/build-release.mjs",
+    "build:web": "vite build",
+    "preview:app": "vite preview --outDir releases/cake-order-app --host 0.0.0.0 --port 4173",
     "electron:start": "electron .",
     "lint": "eslint .",
     "preview": "vite preview"

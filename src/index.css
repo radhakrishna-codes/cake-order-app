@@ -32,6 +32,16 @@ body {
   min-width: 320px;
   color: var(--rr-text);
   background-color: var(--rr-gold-light);
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100dvh;
 }
 
 button,
