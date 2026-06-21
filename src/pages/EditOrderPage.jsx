@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Alert } from '@mui/material'
 import CakeOrderForm from '../components/CakeOrderForm'
 import PageLayout from '../components/PageLayout'
 import { useOrders } from '../context/OrdersContext'
@@ -46,7 +47,7 @@ export default function EditOrderPage() {
   if (loading) {
     return (
       <PageLayout title="Edit Cake Order" backTo="/">
-        <p className="page-message">Loading order...</p>
+        <Alert severity="info">Loading order...</Alert>
       </PageLayout>
     )
   }
@@ -54,7 +55,7 @@ export default function EditOrderPage() {
   if (error) {
     return (
       <PageLayout title="Edit Cake Order" backTo="/">
-        <p className="page-message page-message-error">{error}</p>
+        <Alert severity="error">{error}</Alert>
       </PageLayout>
     )
   }

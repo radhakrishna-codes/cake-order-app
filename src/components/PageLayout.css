@@ -10,10 +10,6 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
   padding: 1.15rem 1.25rem;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--rr-black) 0%, var(--rr-black-soft) 100%);
-  border: 2px solid var(--rr-gold);
-  box-shadow: 0 8px 28px var(--rr-shadow);
 }
 
 .page-header-main {
@@ -70,101 +66,4 @@
 
 .page-content {
   width: 100%;
-}
-
-.page-message {
-  margin: 0;
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
-  background: #fff;
-  border: 1px solid #e7e5e4;
-  color: #44403c;
-}
-
-.page-message-error {
-  color: #b91c1c;
-  border-color: #fecaca;
-  background: #fef2f2;
-}
-
-.btn-edit,
-.btn-create-order-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--rr-black);
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-decoration: none;
-  background: linear-gradient(180deg, var(--rr-gold) 0%, var(--rr-gold-dark) 100%);
-  color: var(--rr-black);
-  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
-}
-
-.btn-edit:hover,
-.btn-create-order-link:hover {
-  filter: brightness(1.08);
-}
-
-.btn-delete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #fecaca;
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  background: transparent;
-  color: #fecaca;
-  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
-}
-
-.btn-delete:hover {
-  background: rgba(185, 28, 28, 0.25);
-}
-
-.btn-complete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #bbf7d0;
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  background: transparent;
-  color: #bbf7d0;
-  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
-}
-
-.btn-complete:hover {
-  background: rgba(22, 163, 74, 0.25);
-}
-
-.btn-reopen {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid var(--rr-gold);
-  border-radius: 10px;
-  padding: 0.7rem 1rem;
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  background: transparent;
-  color: var(--rr-gold-light);
-  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.25);
-}
-
-.btn-reopen:hover {
-  background: rgba(232, 197, 71, 0.2);
 }

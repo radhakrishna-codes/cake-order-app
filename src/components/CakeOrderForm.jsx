@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import dayjs from 'dayjs'
+import FormControl from '@mui/material/FormControl'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { DesktopTimePicker } from '@mui/x-date-pickers/DesktopTimePicker'
+import { renderTimeViewClock } from '@mui/x-date-pickers/timeViewRenderers'
+import MenuItem from '@mui/material/MenuItem'
+import Select from '@mui/material/Select'
 import { uploadReferenceImages } from '../api/uploadsApi'
 import ConfirmDialog from './ConfirmDialog'
 import ReferenceImageLightbox from './ReferenceImageLightbox'
 import { orderToFormState } from '../utils/orderFormUtils'
-import { formatCurrency } from '../utils/orderUtils'
+import { formatCurrency, getPreparationStatusOptions } from '../utils/orderUtils'
 import './CakeOrderForm.css'
 
 const FLAVORS = [
@@ -34,9 +43,11 @@ const SIZE_PRICES = {
   '6 lb': 180,
   '8 lb': 240,
 }
+const PICKER_HIGHLIGHT = 'rgb(184 146 42 / 34%)'
 
 const initialFormState = {
   customerName: '',
+  customerPhoneNumber: '',
   flavor: '',
   customFlavor: '',
   size: '',
@@ -53,6 +64,19 @@ const initialFormState = {
   greetings: '',
   modifications: '',
   referenceImageItems: [],
+  preparationStatus: 'in_progress',
+}
+
+function formatPhoneNumberInput(value) {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  const first = digits.slice(0, 3)
+  const second = digits.slice(3, 6)
+  const third = digits.slice(6, 10)
+
+  if (!first) return ''
+  if (digits.length <= 3) return `(${first}`
+  if (digits.length <= 6) return `(${first}) ${second}`
+  return `(${first}) ${second} - ${third}`
 }
 
 function isBlobPreviewUrl(url) {
@@ -67,6 +91,55 @@ function revokeBlobUrls(items) {
   })
 }
 
+function toDateValue(value) {
+  if (!value) return null
+  const parsed = dayjs(value)
+  return parsed.isValid() ? parsed : null
+}
+
+function toTimeValue(value) {
+  if (!value) return null
+  const parsed = dayjs(`2000-01-01T${value}`)
+  return parsed.isValid() ? parsed : null
+}
+
+function getPickerTextFieldProps(errorMessage) {
+  return {
+    fullWidth: true,
+    error: Boolean(errorMessage),
+    helperText: errorMessage || undefined,
+  }
+}
+
+function getPickerPopperSx() {
+  return {
+    '& .MuiPickersDay-root.Mui-selected, & .MuiPickersDay-root.Mui-selected:hover, & .MuiPickersDay-root.Mui-selected:focus': {
+      backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+      color: 'var(--rr-black) !important',
+    },
+    '& .MuiMultiSectionDigitalClockSection-item.Mui-selected, & .MuiMultiSectionDigitalClockSection-item.Mui-selected:hover': {
+      backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+      color: 'var(--rr-black) !important',
+    },
+    '& .MuiClockNumber-root.Mui-selected, & .MuiClockNumber-root.Mui-selected:hover': {
+      backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+      color: 'var(--rr-black) !important',
+    },
+    '& .MuiClock-pin, & .MuiClockPointer-root, & .MuiClockPointer-thumb': {
+      backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+      borderColor: `${PICKER_HIGHLIGHT} !important`,
+    },
+  }
+}
+
+function getAdvanceAmountError(totalRaw, advanceRaw) {
+  const totalValue = parseFloat(totalRaw)
+  const advanceValue = parseFloat(advanceRaw)
+  if (Number.isNaN(totalValue) || Number.isNaN(advanceValue)) return undefined
+  if (advanceValue > totalValue) return 'Advance cannot exceed total'
+  return undefined
+}
+
 export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel, onSave }) {
   const [form, setForm] = useState(() =>
     initialOrder ? orderToFormState(initialOrder) : initialFormState,
@@ -79,6 +152,10 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
   const referenceImageItemsRef = useRef(form.referenceImageItems)
 
   const isPickup = form.orderType === 'pickup'
+  const preparationStatusOptions = useMemo(
+    () => getPreparationStatusOptions(form.orderType),
+    [form.orderType],
+  )
 
   useEffect(() => {
     referenceImageItemsRef.current = form.referenceImageItems
@@ -96,6 +173,20 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
       setErrors({})
     }
   }, [initialOrder])
+
+  useEffect(() => {
+    if (!form.size || form.size === 'custom') {
+      return
+    }
+
+    const suggestedTotal = SIZE_PRICES[form.size]
+    if (suggestedTotal !== undefined) {
+      setForm((current) => ({
+        ...current,
+        total: String(suggestedTotal),
+      }))
+    }
+  }, [form.size])
 
   const pending = useMemo(() => {
     const total = parseFloat(form.total)
@@ -117,26 +208,31 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     [form.referenceImageItems],
   )
 
-  useEffect(() => {
-    if (!form.size || form.size === 'custom') {
-      return
-    }
-
-    const suggestedTotal = SIZE_PRICES[form.size]
-    if (suggestedTotal !== undefined) {
-      setForm((current) => ({
-        ...current,
-        total: String(suggestedTotal),
-      }))
-    }
-  }, [form.size])
-
   function updateField(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
+  function handlePhoneNumberChange(value) {
+    updateField('customerPhoneNumber', formatPhoneNumberInput(value))
+  }
+
+  function handlePaymentFieldChange(field, value) {
+    const nextForm = { ...form, [field]: value }
+    const advanceAmountError = getAdvanceAmountError(nextForm.total, nextForm.advancePaid)
+    setForm(nextForm)
+    setErrors((current) => ({
+      ...current,
+      total: undefined,
+      advancePaid: advanceAmountError,
+    }))
+  }
+
   function handleOrderTypeChange(value) {
+    const nextStatusOptions = getPreparationStatusOptions(value)
+    const currentStatusIsAllowed = nextStatusOptions.some(
+      (option) => option.value === form.preparationStatus,
+    )
     setForm((current) => ({
       ...current,
       orderType: value,
@@ -145,6 +241,9 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
       deliveryDate: value === 'delivery' ? current.deliveryDate : '',
       deliveryTime: value === 'delivery' ? current.deliveryTime : '',
       deliveryAddress: value === 'delivery' ? current.deliveryAddress : '',
+      preparationStatus: currentStatusIsAllowed
+        ? current.preparationStatus
+        : nextStatusOptions[0].value,
     }))
     setErrors({})
   }
@@ -196,6 +295,11 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
     if (!form.customerName.trim()) {
       nextErrors.customerName = 'Customer name is required'
     }
+    if (!form.customerPhoneNumber.trim()) {
+      nextErrors.customerPhoneNumber = 'Customer phone number is required'
+    } else if (!/^\(\d{3}\)\s\d{3}\s-\s\d{4}$/.test(form.customerPhoneNumber.trim())) {
+      nextErrors.customerPhoneNumber = 'Use format: (555) 123 - 4567'
+    }
 
     if (!form.flavor) {
       nextErrors.flavor = 'Please select a flavor'
@@ -232,12 +336,17 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
       }
     }
 
-    if (form.total === '' || Number.isNaN(parseFloat(form.total))) {
+    const totalValue = parseFloat(form.total)
+    const advancePaidValue = parseFloat(form.advancePaid)
+
+    if (form.total === '' || Number.isNaN(totalValue)) {
       nextErrors.total = 'Total amount is required'
     }
 
-    if (form.advancePaid === '' || Number.isNaN(parseFloat(form.advancePaid))) {
+    if (form.advancePaid === '' || Number.isNaN(advancePaidValue)) {
       nextErrors.advancePaid = 'Advance paid is required'
+    } else if (!Number.isNaN(totalValue) && advancePaidValue > totalValue) {
+      nextErrors.advancePaid = 'Advance cannot exceed total'
     }
 
     if (!form.orderTakenBy.trim()) {
@@ -279,6 +388,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
 
       const order = {
         customerName: form.customerName.trim(),
+        customerPhoneNumber: form.customerPhoneNumber.trim(),
         flavor:
           form.flavor === 'custom'
             ? form.customFlavor.trim()
@@ -298,6 +408,7 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
         modifications: form.modifications.trim(),
         referenceImageName,
         referenceImages,
+        preparationStatus: form.preparationStatus,
       }
 
       await onSave?.(order)
@@ -310,28 +421,47 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
 
   function handleReset() {
     revokeBlobUrls(form.referenceImageItems)
-
     setForm(initialOrder ? orderToFormState(initialOrder) : initialFormState)
     setErrors({})
   }
 
   return (
     <div className="cake-order-form-body">
-      <form className="cake-order-form" onSubmit={handleSubmit} noValidate>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <form className="cake-order-form" onSubmit={handleSubmit} noValidate>
         <section className="form-section">
-          <div className="field">
-            <label htmlFor="customerName">
-              Customer Name <span className="required">*</span>
-            </label>
-            <input
-              id="customerName"
-              type="text"
-              value={form.customerName}
-              onChange={(event) => updateField('customerName', event.target.value)}
-              placeholder="Enter customer name"
-              aria-invalid={Boolean(errors.customerName)}
-            />
-            {errors.customerName && <p className="error">{errors.customerName}</p>}
+          <div className="field-row customer-row">
+            <div className="field">
+              <label htmlFor="customerName">
+                Customer Name <span className="required">*</span>
+              </label>
+              <input
+                id="customerName"
+                type="text"
+                value={form.customerName}
+                onChange={(event) => updateField('customerName', event.target.value)}
+                placeholder="Enter customer name"
+                aria-invalid={Boolean(errors.customerName)}
+              />
+              {errors.customerName && <p className="error">{errors.customerName}</p>}
+            </div>
+            <div className="field">
+              <label htmlFor="customerPhoneNumber">
+                Customer Phone Number <span className="required">*</span>
+              </label>
+              <input
+                id="customerPhoneNumber"
+                type="tel"
+                value={form.customerPhoneNumber}
+                onChange={(event) => handlePhoneNumberChange(event.target.value)}
+                placeholder="(555) 123 - 4567"
+                maxLength={16}
+                aria-invalid={Boolean(errors.customerPhoneNumber)}
+              />
+              {errors.customerPhoneNumber ? (
+                <p className="error">{errors.customerPhoneNumber}</p>
+              ) : null}
+            </div>
           </div>
 
           <fieldset className="field">
@@ -419,77 +549,155 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             {errors.orderType && <p className="error">{errors.orderType}</p>}
           </fieldset>
 
+          {mode === 'edit' ? (
+            <div className="field-row status-order-row">
+              <div className="field">
+                <label htmlFor="preparationStatus">
+                  Status <span className="required">*</span>
+                </label>
+                <FormControl size="small" fullWidth>
+                  <Select
+                    id="preparationStatus"
+                    value={form.preparationStatus}
+                    onChange={(event) => updateField('preparationStatus', event.target.value)}
+                    aria-label="Order preparation status"
+                    sx={{
+                      '& .MuiSelect-select': {
+                        py: '0.62rem',
+                        pl: '0.85rem',
+                        pr: '2.25rem',
+                      },
+                      '& .MuiSelect-icon': {
+                        right: '0.6rem',
+                      },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          borderRadius: '10px',
+                          '& .MuiMenuItem-root': {
+                            '&.Mui-selected': {
+                              backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+                              color: 'var(--rr-black)',
+                            },
+                            '&.Mui-selected:hover': {
+                              backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+                            },
+                            '&:hover': {
+                              backgroundColor: `${PICKER_HIGHLIGHT} !important`,
+                            },
+                          },
+                        },
+                      },
+                    }}
+                  >
+                    {preparationStatusOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+
+              <div className="field">
+                <label htmlFor="orderTakenBy">
+                  Order Taken By <span className="required">*</span>
+                </label>
+                <input
+                  id="orderTakenBy"
+                  type="text"
+                  value={form.orderTakenBy}
+                  onChange={(event) => updateField('orderTakenBy', event.target.value)}
+                  placeholder="Enter staff name"
+                  aria-invalid={Boolean(errors.orderTakenBy)}
+                />
+                {errors.orderTakenBy && <p className="error">{errors.orderTakenBy}</p>}
+              </div>
+            </div>
+          ) : null}
+
           {isPickup ? (
-            <div className="field-row">
+            <div className="field-row date-time-row">
               <div className="field">
                 <label htmlFor="pickupDate">
                   Pick Up Date <span className="required">*</span>
                 </label>
-                <input
+                <DatePicker
                   id="pickupDate"
-                  type="date"
-                  value={form.pickupDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(event) => updateField('pickupDate', event.target.value)}
-                  aria-invalid={Boolean(errors.pickupDate)}
+                  value={toDateValue(form.pickupDate)}
+                  onChange={(value) => updateField('pickupDate', value ? value.format('YYYY-MM-DD') : '')}
+                  minDate={dayjs().startOf('day')}
+                  format="MM/DD/YYYY"
+                  slotProps={{
+                    textField: getPickerTextFieldProps(errors.pickupDate),
+                    popper: { sx: getPickerPopperSx() },
+                  }}
                 />
-                {errors.pickupDate && <p className="error">{errors.pickupDate}</p>}
               </div>
 
               <div className="field">
                 <label htmlFor="pickupTime">
                   Pick Up Time <span className="required">*</span>
                 </label>
-                <div className="time-input-wrapper">
-                  <span className="clock-icon" aria-hidden="true">
-                    🕐
-                  </span>
-                  <input
-                    id="pickupTime"
-                    type="time"
-                    value={form.pickupTime}
-                    onChange={(event) => updateField('pickupTime', event.target.value)}
-                    aria-invalid={Boolean(errors.pickupTime)}
-                  />
-                </div>
-                {errors.pickupTime && <p className="error">{errors.pickupTime}</p>}
+                <DesktopTimePicker
+                  id="pickupTime"
+                  value={toTimeValue(form.pickupTime)}
+                  onChange={(value) => updateField('pickupTime', value ? value.format('HH:mm') : '')}
+                  ampm
+                  minutesStep={5}
+                  viewRenderers={{
+                    hours: renderTimeViewClock,
+                    minutes: renderTimeViewClock,
+                  }}
+                  slotProps={{
+                    textField: getPickerTextFieldProps(errors.pickupTime),
+                    popper: { sx: getPickerPopperSx() },
+                  }}
+                />
               </div>
             </div>
           ) : (
             <>
-              <div className="field-row">
+              <div className="field-row date-time-row">
                 <div className="field">
                   <label htmlFor="deliveryDate">
                     Delivery Date <span className="required">*</span>
                   </label>
-                  <input
+                  <DatePicker
                     id="deliveryDate"
-                    type="date"
-                    value={form.deliveryDate}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={(event) => updateField('deliveryDate', event.target.value)}
-                    aria-invalid={Boolean(errors.deliveryDate)}
+                    value={toDateValue(form.deliveryDate)}
+                    onChange={(value) =>
+                      updateField('deliveryDate', value ? value.format('YYYY-MM-DD') : '')
+                    }
+                    minDate={dayjs().startOf('day')}
+                    format="MM/DD/YYYY"
+                    slotProps={{
+                      textField: getPickerTextFieldProps(errors.deliveryDate),
+                      popper: { sx: getPickerPopperSx() },
+                    }}
                   />
-                  {errors.deliveryDate && <p className="error">{errors.deliveryDate}</p>}
                 </div>
 
                 <div className="field">
                   <label htmlFor="deliveryTime">
                     Delivery Time <span className="required">*</span>
                   </label>
-                  <div className="time-input-wrapper">
-                    <span className="clock-icon" aria-hidden="true">
-                      🕐
-                    </span>
-                    <input
-                      id="deliveryTime"
-                      type="time"
-                      value={form.deliveryTime}
-                      onChange={(event) => updateField('deliveryTime', event.target.value)}
-                      aria-invalid={Boolean(errors.deliveryTime)}
-                    />
-                  </div>
-                  {errors.deliveryTime && <p className="error">{errors.deliveryTime}</p>}
+                  <DesktopTimePicker
+                    id="deliveryTime"
+                    value={toTimeValue(form.deliveryTime)}
+                    onChange={(value) => updateField('deliveryTime', value ? value.format('HH:mm') : '')}
+                    ampm
+                    minutesStep={5}
+                    viewRenderers={{
+                      hours: renderTimeViewClock,
+                      minutes: renderTimeViewClock,
+                    }}
+                    slotProps={{
+                      textField: getPickerTextFieldProps(errors.deliveryTime),
+                      popper: { sx: getPickerPopperSx() },
+                    }}
+                  />
                 </div>
               </div>
 
@@ -521,11 +729,13 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
                 min="0"
                 step="0.01"
                 value={form.total}
-                onChange={(event) => updateField('total', event.target.value)}
+                onChange={(event) => handlePaymentFieldChange('total', event.target.value)}
                 placeholder="$0.00"
                 aria-invalid={Boolean(errors.total)}
               />
-              {errors.total && <p className="error">{errors.total}</p>}
+              <p className={`error payment-error${errors.total ? '' : ' is-empty'}`}>
+                {errors.total || ' '}
+              </p>
             </div>
 
             <div className="field">
@@ -538,11 +748,13 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
                 min="0"
                 step="0.01"
                 value={form.advancePaid}
-                onChange={(event) => updateField('advancePaid', event.target.value)}
+                onChange={(event) => handlePaymentFieldChange('advancePaid', event.target.value)}
                 placeholder="$0.00"
                 aria-invalid={Boolean(errors.advancePaid)}
               />
-              {errors.advancePaid && <p className="error">{errors.advancePaid}</p>}
+              <p className={`error payment-error${errors.advancePaid ? '' : ' is-empty'}`}>
+                {errors.advancePaid || ' '}
+              </p>
             </div>
 
             <div className="field">
@@ -557,23 +769,26 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
                 className="readonly-field"
                 placeholder="Auto-calculated"
               />
+              <p className="error payment-error is-empty"> </p>
             </div>
           </div>
 
-          <div className="field">
-            <label htmlFor="orderTakenBy">
-              Order Taken By <span className="required">*</span>
-            </label>
-            <input
-              id="orderTakenBy"
-              type="text"
-              value={form.orderTakenBy}
-              onChange={(event) => updateField('orderTakenBy', event.target.value)}
-              placeholder="Enter staff name"
-              aria-invalid={Boolean(errors.orderTakenBy)}
-            />
-            {errors.orderTakenBy && <p className="error">{errors.orderTakenBy}</p>}
-          </div>
+          {mode !== 'edit' ? (
+            <div className="field">
+              <label htmlFor="orderTakenBy">
+                Order Taken By <span className="required">*</span>
+              </label>
+              <input
+                id="orderTakenBy"
+                type="text"
+                value={form.orderTakenBy}
+                onChange={(event) => updateField('orderTakenBy', event.target.value)}
+                placeholder="Enter staff name"
+                aria-invalid={Boolean(errors.orderTakenBy)}
+              />
+              {errors.orderTakenBy && <p className="error">{errors.orderTakenBy}</p>}
+            </div>
+          ) : null}
 
           <div className="field">
             <label htmlFor="greetings">
@@ -677,7 +892,8 @@ export default function CakeOrderForm({ mode = 'create', initialOrder, onCancel,
             {isSaving ? 'Saving...' : mode === 'edit' ? 'Update Order' : 'Save Order'}
           </button>
         </div>
-      </form>
+        </form>
+      </LocalizationProvider>
 
       {imagePendingDelete ? (
         <ConfirmDialog

@@ -5,6 +5,7 @@ function fromApiOrder(order) {
   return {
     id: order.id,
     customerName: order.customer_name,
+    customerPhoneNumber: order.customer_phone_number ?? '',
     flavor: order.flavor,
     size: order.size,
     orderType: order.order_type ?? 'pickup',
@@ -22,6 +23,8 @@ function fromApiOrder(order) {
     referenceImageName: order.reference_image_name,
     referenceImages: (order.reference_images ?? []).map(resolveAssetUrl),
     preparationStatus: normalizePreparationStatus(order.preparation_status),
+    createdBy: order.created_by ?? '',
+    updatedBy: order.updated_by ?? '',
     createdAt: order.created_at,
     updatedAt: order.updated_at,
   }
@@ -30,6 +33,7 @@ function fromApiOrder(order) {
 function toApiOrder(order) {
   return {
     customer_name: order.customerName,
+    customer_phone_number: order.customerPhoneNumber,
     flavor: order.flavor,
     size: order.size,
     order_type: order.orderType ?? 'pickup',
@@ -46,6 +50,7 @@ function toApiOrder(order) {
     modifications: order.modifications ?? '',
     reference_image_name: order.referenceImageName ?? null,
     reference_images: order.referenceImages ?? [],
+    preparation_status: order.preparationStatus ?? 'in_progress',
   }
 }
 

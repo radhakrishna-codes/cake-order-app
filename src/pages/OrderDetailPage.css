@@ -1,9 +1,5 @@
 .order-detail-card {
-  background: linear-gradient(180deg, var(--rr-card) 0%, var(--rr-cream) 100%);
-  border: 2px solid var(--rr-gold-dark);
-  border-radius: 14px;
   padding: 1.25rem;
-  box-shadow: 0 8px 24px var(--rr-shadow);
 }
 
 .detail-delete-error {

@@ -1,0 +1,10 @@
+{
+  "appId": "com.rajaranibakery.cakeorders",
+  "appName": "Cake Orders",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#fff8e7"
+  }
+}
+

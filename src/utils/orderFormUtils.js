@@ -28,6 +28,7 @@ export function orderToFormState(order) {
 
   const baseFields = {
     customerName: order.customerName,
+    customerPhoneNumber: order.customerPhoneNumber ?? '',
     size: isPresetSize ? order.size : 'custom',
     customSize: isPresetSize ? '' : order.size,
     orderType: order.orderType ?? 'pickup',
@@ -42,6 +43,7 @@ export function orderToFormState(order) {
     greetings: order.greetings ?? '',
     modifications: order.modifications ?? '',
     referenceImageItems: buildReferenceImageItems(order),
+    preparationStatus: order.preparationStatus ?? 'in_progress',
   }
 
   if (matchedFlavor && matchedFlavor.value !== 'custom') {

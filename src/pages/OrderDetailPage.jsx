@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Alert, Button, Card } from '@mui/material'
 import ConfirmDialog from '../components/ConfirmDialog'
 import OrderPreparationStatusBadge from '../components/OrderPreparationStatusBadge'
-import OrderPreparationStatusSelect from '../components/OrderPreparationStatusSelect'
 import PageLayout from '../components/PageLayout'
 import ReferenceImageLightbox from '../components/ReferenceImageLightbox'
 import { useOrders } from '../context/OrdersContext'
 import {
   formatCakeLabel,
   formatCurrency,
+  formatDateTimeLabel,
   formatPickupDateLabel,
   formatPickupTime,
   getDisplayPreparationStatus,
@@ -20,7 +21,7 @@ import './OrderDetailPage.css'
 export default function OrderDetailPage() {
   const { orderId } = useParams()
   const navigate = useNavigate()
-  const { fetchOrderById, deleteOrder, updatePreparationStatus, refreshOrders } = useOrders()
+  const { fetchOrderById, deleteOrder, refreshOrders } = useOrders()
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -83,34 +84,12 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function handlePreparationStatusChange(nextStatus) {
-    setActionError(null)
-
-    try {
-      const updated = await updatePreparationStatus(order.id, nextStatus)
-      setOrder(updated)
-
-      if (nextStatus === 'completed') {
-        navigate('/', {
-          replace: true,
-          state: {
-            successMessage: `${order.customerName}'s order has been marked as completed`,
-          },
-        })
-        refreshOrders({ silent: true, statusFilter: HOME_STATUS_FILTERS.all })
-      }
-    } catch (err) {
-      setActionError(err.message ?? 'Failed to update status')
-      throw err
-    }
-  }
-
   const isActionInProgress = isDeleting
 
   if (loading && !isActionInProgress) {
     return (
       <PageLayout title="Cake Order Details" backTo="/">
-        <p className="page-message">Loading order...</p>
+        <Alert severity="info">Loading order...</Alert>
       </PageLayout>
     )
   }
@@ -118,7 +97,7 @@ export default function OrderDetailPage() {
   if (error) {
     return (
       <PageLayout title="Cake Order Details" backTo="/">
-        <p className="page-message page-message-error">{error}</p>
+        <Alert severity="error">{error}</Alert>
       </PageLayout>
     )
   }
@@ -139,34 +118,45 @@ export default function OrderDetailPage() {
         backTo="/"
         actions={
           <>
-            <OrderPreparationStatusSelect
-              orderType={order.orderType}
-              value={displayStatus}
-              onChange={handlePreparationStatusChange}
-            />
             {!orderIsCompleted ? (
               <>
-                <button
+                <Button
                   type="button"
-                  className="btn-delete"
+                  variant="rrDangerGhost"
+                  size="small"
                   onClick={() => setShowDeleteConfirm(true)}
+                  sx={{ px: 1.5, py: 0.55, minHeight: 34 }}
                 >
                   Delete
-                </button>
-                <Link to={`/orders/${order.id}/edit`} className="btn-edit">
+                </Button>
+                <Button
+                  component={Link}
+                  to={`/orders/${order.id}/edit`}
+                  variant="rrGold"
+                  size="small"
+                  sx={{ px: 1.5, py: 0.55, minHeight: 34 }}
+                >
                   Edit Order
-                </Link>
+                </Button>
               </>
             ) : null}
           </>
         }
       >
-        {actionError ? <p className="detail-delete-error">{actionError}</p> : null}
-        <section className="order-detail-card">
+        {actionError ? (
+          <Alert severity="error" className="detail-delete-error">
+            {actionError}
+          </Alert>
+        ) : null}
+        <Card className="order-detail-card" variant="rrSurface" elevation={0}>
           <dl className="detail-grid">
             <div>
               <dt>Customer</dt>
               <dd>{order.customerName}</dd>
+            </div>
+            <div>
+              <dt>Phone Number</dt>
+              <dd>{order.customerPhoneNumber || 'N/A'}</dd>
             </div>
             <div>
               <dt>Status</dt>
@@ -224,6 +214,18 @@ export default function OrderDetailPage() {
               <dt>Order Taken By</dt>
               <dd>{order.orderTakenBy}</dd>
             </div>
+            <div>
+              <dt>Created By</dt>
+              <dd>
+                {order.createdBy || order.orderTakenBy} ({formatDateTimeLabel(order.createdAt)})
+              </dd>
+            </div>
+            <div>
+              <dt>Updated By</dt>
+              <dd>
+                {order.updatedBy || order.orderTakenBy} ({formatDateTimeLabel(order.updatedAt)})
+              </dd>
+            </div>
             {order.greetings ? (
               <div className="detail-full">
                 <dt>Greetings</dt>
@@ -266,7 +268,7 @@ export default function OrderDetailPage() {
               </div>
             ) : null}
           </dl>
-        </section>
+        </Card>
       </PageLayout>
 
       <ReferenceImageLightbox

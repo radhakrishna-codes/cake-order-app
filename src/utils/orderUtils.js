@@ -40,6 +40,21 @@ export function formatCurrency(amount) {
   return `$${value.toFixed(2)}`
 }
 
+export function formatDateTimeLabel(value) {
+  if (!value) return 'N/A'
+  const normalizedValue =
+    typeof value === 'string' && !/[zZ]|[+-]\d{2}:\d{2}$/.test(value) ? `${value}Z` : value
+  const date = new Date(normalizedValue)
+  if (Number.isNaN(date.getTime())) return 'N/A'
+  return date.toLocaleString('en-US', {
+    month: '2-digit',
+    day: '2-digit',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
 export function getOrderScheduleDate(order) {
   return order.orderType === 'delivery' ? order.deliveryDate : order.pickupDate
 }
@@ -90,21 +105,6 @@ export function getPreparationStatusOptions(orderType) {
     readyOption,
     { value: 'completed', label: PREPARATION_STATUS_LABELS.completed },
   ]
-}
-
-export function getPreparationStatusBadgeClass(status) {
-  const normalized = normalizePreparationStatus(status)
-  switch (normalized) {
-    case 'in_progress':
-      return 'status-badge-in-progress'
-    case 'ready_for_pickup':
-    case 'ready_for_delivery':
-      return 'status-badge-ready'
-    case 'completed':
-      return 'status-badge-completed'
-    default:
-      return 'status-badge-in-progress'
-  }
 }
 
 export const HOME_STATUS_FILTERS = {

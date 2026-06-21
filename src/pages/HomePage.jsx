@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import logo from '../assets/rajaranilogo.png'
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material'
+import logo from '../assets/rajaranilogo-160.png'
 import OrderPreparationStatusBadge from '../components/OrderPreparationStatusBadge'
 import SuccessBanner from '../components/SuccessBanner'
 import { useOrders } from '../context/OrdersContext'
@@ -75,76 +86,181 @@ export default function HomePage() {
       <header className="home-header">
         <div className="home-header-top">
           <div className="home-brand">
-            <img src={logo} alt="Raja Rani Bakery & Restaurant" className="home-logo" />
-            <div>
-              <h1>Cake Orders</h1>
-              <p className="home-subtitle">Pickup schedule by date</p>
-            </div>
+            <img
+              src={logo}
+              alt="Raja Rani Bakery & Restaurant"
+              className="home-logo"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+            />
+            <Box>
+              <Typography
+                component="h1"
+                sx={{
+                  m: 0,
+                  fontSize: 'clamp(1.35rem, 3.5vw, 1.75rem)',
+                  color: 'var(--rr-gold-light)',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Cake Orders
+              </Typography>
+              <Typography
+                sx={{
+                  mt: '0.25rem',
+                  fontSize: '0.9rem',
+                  color: 'var(--rr-gold-mid)',
+                }}
+              >
+                Pickup schedule by date
+              </Typography>
+            </Box>
           </div>
-          <Link to="/orders/new" className="btn-create-order">
+          <Button
+            component={Link}
+            to="/orders/new"
+            variant="rrGold"
+            sx={{
+              px: 2,
+              py: 0.9,
+              flexShrink: 0,
+              width: { xs: '100%', sm: 'auto' },
+              '&:hover': { transform: 'translateY(-1px)' },
+            }}
+          >
             Create Cake Order
-          </Link>
+          </Button>
         </div>
       </header>
 
       <nav className="home-status-filters" aria-label="Filter orders by status">
-        {STATUS_FILTER_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`home-status-filter ${activeFilter === tab.id ? 'is-active' : ''}`}
-            aria-pressed={activeFilter === tab.id}
-            onClick={() => handleFilterSelect(tab.id)}
-          >
-            <span className="home-status-filter-label">{tab.label}</span>
-            <span className="home-status-filter-count">{filterCounts[tab.id]}</span>
-          </button>
-        ))}
+        <ToggleButtonGroup
+          exclusive
+          value={activeFilter}
+          onChange={(_, value) => {
+            if (value) handleFilterSelect(value)
+          }}
+          aria-label="Filter orders by status"
+          sx={{ flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}
+        >
+          {STATUS_FILTER_TABS.map((tab) => {
+            const isActive = activeFilter === tab.id
+            return (
+              <ToggleButton
+                key={tab.id}
+                value={tab.id}
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  minWidth: '9.5rem',
+                  border: '2px solid var(--rr-gold-dark)',
+                  borderRadius: '12px !important',
+                  px: 1.7,
+                  py: 1,
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  color: 'var(--rr-black)',
+                  background: isActive
+                    ? 'linear-gradient(180deg, var(--rr-gold) 0%, var(--rr-gold-dark) 100%)'
+                    : 'var(--rr-card)',
+                  boxShadow: isActive
+                    ? '0 6px 18px rgba(26, 26, 26, 0.25)'
+                    : '0 4px 14px var(--rr-shadow)',
+                  '&:hover': {
+                    background: isActive
+                      ? 'linear-gradient(180deg, var(--rr-gold) 0%, var(--rr-gold-dark) 100%)'
+                      : '#fffef8',
+                    borderColor: 'var(--rr-gold)',
+                  },
+                }}
+              >
+                <span>{tab.label}</span>
+                <Chip
+                  size="small"
+                  label={filterCounts[tab.id]}
+                  sx={{
+                    height: 24,
+                    fontWeight: 800,
+                    background: isActive ? 'rgba(26, 26, 26, 0.18)' : 'rgba(56, 51, 51, 0.1)',
+                    color: 'inherit',
+                  }}
+                />
+              </ToggleButton>
+            )
+          })}
+        </ToggleButtonGroup>
       </nav>
 
       <section className="orders-list" aria-label="Cake orders by pickup date">
         {loading ? (
-          <p className="orders-empty">Loading orders...</p>
+          <Typography className="orders-empty">Loading orders...</Typography>
         ) : error ? (
-          <div className="orders-empty orders-error">
-            <p>{error}</p>
-            <button type="button" className="btn-retry" onClick={() => refreshOrders({ statusFilter: activeFilter })}>
+          <Stack className="orders-empty orders-error">
+            <Typography>{error}</Typography>
+            <Button
+              type="button"
+              onClick={() => refreshOrders({ statusFilter: activeFilter })}
+              variant="rrGold"
+              sx={{ px: 2, py: 0.8, fontWeight: 600 }}
+            >
               Try again
-            </button>
-          </div>
+            </Button>
+          </Stack>
         ) : grouped.length === 0 ? (
-          <div className="orders-empty orders-empty-state">
-            <p className="orders-empty-message">{EMPTY_STATES[activeFilter].message}</p>
-            <p className="orders-empty-hint">{EMPTY_STATES[activeFilter].hint}</p>
+          <Stack className="orders-empty orders-empty-state">
+            <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--rr-black)' }}>
+              {EMPTY_STATES[activeFilter].message}
+            </Typography>
+            <Typography sx={{ maxWidth: '26rem', fontSize: '0.92rem', lineHeight: 1.45, color: 'var(--rr-text-muted)' }}>
+              {EMPTY_STATES[activeFilter].hint}
+            </Typography>
             {EMPTY_STATES[activeFilter].showCreate !== false ? (
-              <Link to="/orders/new" className="btn-create-order orders-empty-create">
+              <Button
+                component={Link}
+                to="/orders/new"
+                variant="rrGold"
+                sx={{ mt: 0.5, px: 2, py: 0.9 }}
+              >
                 Create Cake Order
-              </Link>
+              </Button>
             ) : null}
-          </div>
+          </Stack>
         ) : (
           grouped.map((group) => (
-            <article key={group.pickupDate} className="pickup-group">
-              <h2 className="pickup-heading">{group.pickupLabel}</h2>
-              <ol className="cake-items">
-                {group.items.map((order) => (
-                  <li key={order.id}>
-                    <Link to={`/orders/${order.id}`} className="cake-item-button">
-                      <span className="cake-item-top">
-                        <span className="cake-item-customer">{order.customerName}</span>
-                        <span className="cake-item-time">
-                          {formatPickupTime(getOrderScheduleTime(order))}
+            <Card
+              key={group.pickupDate}
+              className="pickup-group"
+              variant="rrSurface"
+              component="article"
+              elevation={0}
+            >
+              <Typography component="h2" className="pickup-heading">
+                {group.pickupLabel}
+              </Typography>
+              <CardContent sx={{ pt: 0, px: '0.75rem', pb: '1rem !important' }}>
+                <Stack component="ol" className="cake-items">
+                  {group.items.map((order) => (
+                    <Box component="li" key={order.id}>
+                      <Box component={Link} to={`/orders/${order.id}`} className="cake-item-button">
+                        <span className="cake-item-top">
+                          <span className="cake-item-customer">{order.customerName}</span>
+                          <span className="cake-item-time">
+                            {formatPickupTime(getOrderScheduleTime(order))}
+                          </span>
+                          <OrderPreparationStatusBadge status={getDisplayPreparationStatus(order)} />
                         </span>
-                        <OrderPreparationStatusBadge status={getDisplayPreparationStatus(order)} />
-                      </span>
-                      <span className="cake-item-label">
-                        {formatCakeLabel(order.flavor, order.size)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            </article>
+                        <span className="cake-item-label">
+                          {formatCakeLabel(order.flavor, order.size)}
+                        </span>
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
+              </CardContent>
+            </Card>
           ))
         )}
       </section>
